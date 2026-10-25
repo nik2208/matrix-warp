@@ -1,0 +1,20 @@
+{
+  "name": "Matrix Warp — Interactive 2D & 3D Linear Algebra & Numerical Solver Studio",
+  "short_name": "Matrix Warp",
+  "description": "Interactive 2D & 3D visualizer for linear transformations, determinants, eigenvalues, Gershgorin discs, Minkowski Lp norms, and Ax=b direct & iterative solvers (Gauss, LU, Cholesky, Thomas, Jacobi, Gauss-Seidel, SOR, Conjugate Gradient).",
+  "start_url": "/matrix-warp/",
+  "scope": "/matrix-warp/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0ea5e9",
+  "orientation": "any",
+  "categories": ["education", "science", "utilities", "developer tools"],
+  "icons": [
+    {
+      "src": "/matrix-warp/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

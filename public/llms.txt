@@ -1,0 +1,27 @@
+# Matrix Warp — Interactive 2D & 3D Linear Algebra, Spectral & Numerical Solver Studio
+
+> Matrix Warp (https://nik2208.github.io/matrix-warp/) is a free, open-source, client-side interactive mathematical and numerical linear algebra web application for visualizing 2x2 (2D) and 3x3 (3D) matrices, determinants, eigenvalues/eigenvectors, Gershgorin discs, Minkowski Lp norms (p in [1, infinity]), matrix factorizations (SVD, PA=LU, Cholesky LL^T, QR), and direct/iterative linear system solvers for Ax = b (Gaussian Elimination with Naive/Partial/Complete Pivoting, Cholesky, Thomas TDMA, Cramer's Rule, Jacobi, Gauss-Seidel, SOR, and Conjugate Gradient).
+
+## Key Links
+
+- [Live Web Application](https://nik2208.github.io/matrix-warp/): Interactive 2D HTML5 Canvas and 3D Three.js WebGL visualizer.
+- [Full Technical & Mathematical Reference (llms-full.txt)](https://nik2208.github.io/matrix-warp/llms-full.txt): Detailed overview of all mathematical formulas, algorithms, and visualizations in Matrix Warp.
+- [Source Code Repository](https://github.com/nik2208/matrix-warp): MIT-licensed React + TypeScript + Three.js repository.
+
+## Core Capabilities
+
+1. **2D & 3D Geometric Transformation & Determinant**:
+   - Compares the reference unit square/cube (Area/Volume = 1) with the transformed parallelogram/parallelepiped (Area/Volume = |det(A)|), including orientation flip detection (det(A) < 0) and rank-deficient collapse.
+   - Continuous homotopy interpolation M(t) = (1-t)I + tA and discrete power iteration v_k = A^k v.
+
+2. **Minkowski Lp Norm Explorer (p from 1 to Infinity)**:
+   - Continuous slider for p in [1, infinity] computing vector norms ||v||_p, ||Av||_p, induced operator norm ||A||_p = max_{||x||_p=1} ||Ax||_p, inverse norm ||A^-1||_p, and generalized condition number kappa_p(A) = ||A||_p ||A^-1||_p.
+   - Draws the 2D/3D Lp unit ball {x : ||x||_p = 1}, its image {Ax : ||x||_p = 1}, and the maximizer vector x_max.
+
+3. **Spectral Analysis, Argand Plane & Gershgorin Discs**:
+   - Real and complex eigenvalues/eigenvectors, invariant subspaces, scaled vectors lambda_i e_i, spectral radius rho(A) = max |lambda_i|, characteristic polynomial p(lambda), and interactive Argand complex plane with Gershgorin discs D(a_ii, R_i).
+
+4. **Linear System Ax = b Direct & Iterative Solvers**:
+   - **Row Picture & Column Picture**: 2D intersecting lines and 3D translucent intersecting planes (a_i1 x + a_i2 y + a_i3 z = b_i), plus tip-to-tail column combinations x_1 Ae_1 + x_2 Ae_2 (+ x_3 Ae_3) = b.
+   - **Direct Methods**: Step-by-step Gaussian Elimination [A^(k)|b^(k)] with Naive LU, Partial Pivoting (PA=LU), and Complete Pivoting (PAQ=LU); Cholesky (A=LL^T and LDL^T) with Sylvester principal minors; Thomas Algorithm (TDMA) for tridiagonal systems; Cramer's Rule; and SVD Moore-Penrose pseudoinverse A^+ b.
+   - **Iterative Methods**: Jacobi, Gauss-Seidel, SOR (with relaxation factor omega), and Conjugate Gradient (CG / Krylov CGNR), displaying exact iteration matrix spectral radii rho(G), diagonal dominance margins, 2D/3D trajectories x^(0) -> x^(k), and log-residual convergence plots.

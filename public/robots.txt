@@ -1,0 +1,32 @@
+# Matrix Warp — SEO & GEO (Generative Engine Optimization) Robots Policy
+# Live URL: https://nik2208.github.io/matrix-warp/
+
+User-agent: *
+Allow: /
+
+# Explicitly allow AI / Generative Search Engines (GEO)
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://nik2208.github.io/matrix-warp/sitemap.xml

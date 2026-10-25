@@ -3,10 +3,173 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Matrix Warp — 2D & 3D Linear Transformation & Spectral Visualizer</title>
+
+    <!-- Primary SEO Meta Tags -->
+    <title>Matrix Warp — Interactive 2D &amp; 3D Linear Algebra, Eigenvalues, Lp Norms &amp; Ax=b Solver Visualizer</title>
+    <meta
+      name="title"
+      content="Matrix Warp — Interactive 2D & 3D Linear Algebra, Eigenvalues, Lp Norms & Ax=b Solver Visualizer"
+    />
+    <meta
+      name="description"
+      content="Free interactive 2D and 3D linear algebra & numerical analysis visualizer. Explore determinants, eigenvalues, Gershgorin discs, Minkowski Lp norms (p from 1 to infinity), condition numbers, SVD/LU/Cholesky/QR decompositions, and direct & iterative Ax=b solvers (Gauss, Cholesky, Thomas TDMA, Jacobi, Gauss-Seidel, SOR, Conjugate Gradient)."
+    />
+    <meta
+      name="keywords"
+      content="linear algebra visualizer, matrix transformation 2D 3D, determinant visualizer, eigenvalues eigenvectors, Gershgorin discs, spectral radius, Minkowski Lp norm, condition number, SVD visualizer, LU decomposition, Cholesky factorization, Thomas algorithm tridiagonal, Gaussian elimination pivoting, Jacobi Gauss-Seidel SOR, Conjugate Gradient visualizer, interactive math WebGL"
+    />
+    <meta name="author" content="Nicola Brecciaroli (nik2208)" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="theme-color" content="#020617" />
+    <meta name="application-name" content="Matrix Warp" />
+
+    <!-- Canonical & GEO / AI Discovery Links -->
+    <link rel="canonical" href="https://nik2208.github.io/matrix-warp/" />
+    <link rel="icon" type="image/svg+xml" href="/matrix-warp/favicon.svg" />
+    <link rel="manifest" href="/matrix-warp/site.webmanifest" />
+    <link rel="alternate" type="text/markdown" title="LLM Summary (GEO)" href="https://nik2208.github.io/matrix-warp/llms.txt" />
+    <link rel="alternate" type="text/markdown" title="LLM Full Mathematical Reference (GEO)" href="https://nik2208.github.io/matrix-warp/llms-full.txt" />
+
+    <!-- Open Graph / Facebook / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Matrix Warp" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="it_IT" />
+    <meta property="og:url" content="https://nik2208.github.io/matrix-warp/" />
+    <meta
+      property="og:title"
+      content="Matrix Warp — Interactive 2D & 3D Linear Algebra, Spectral & Ax=b Solver Studio"
+    />
+    <meta
+      property="og:description"
+      content="Visualize 2x2 & 3x3 matrices in real time: 2D/3D determinants, Minkowski Lp norms, eigenvalues & Gershgorin discs, SVD/LU/Cholesky/QR factorizations, 3D row planes, and direct & iterative Ax=b trajectories."
+    />
+    <meta property="og:image" content="https://nik2208.github.io/matrix-warp/og-preview.svg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Matrix Warp — 2D & 3D Linear Algebra, Lp Norms, Spectral & Ax=b Visualizer" />
+
+    <!-- Twitter / X Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://nik2208.github.io/matrix-warp/" />
+    <meta
+      name="twitter:title"
+      content="Matrix Warp — Interactive 2D & 3D Linear Algebra & Numerical Solver Studio"
+    />
+    <meta
+      name="twitter:description"
+      content="Interactive 2D/3D visualization of determinants, eigenvalues, Gershgorin discs, Lp norms, SVD/LU/Cholesky/QR, and Gauss, Thomas, Jacobi, Gauss-Seidel, SOR & Conjugate Gradient solvers."
+    />
+    <meta name="twitter:image" content="https://nik2208.github.io/matrix-warp/og-preview.svg" />
+
+    <!-- JSON-LD Structured Data for Search Engines & Generative AI (Schema.org WebApplication + LearningResource + FAQPage) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": ["WebApplication", "LearningResource"],
+            "@id": "https://nik2208.github.io/matrix-warp/#app",
+            "name": "Matrix Warp",
+            "alternateName": "Matrix Warp — Linear Operator, Spectral & Ax=b Numerical Studio",
+            "url": "https://nik2208.github.io/matrix-warp/",
+            "image": "https://nik2208.github.io/matrix-warp/og-preview.svg",
+            "description": "Interactive client-side 2D and 3D linear algebra and numerical analysis studio for visualizing linear transformations, determinants, Minkowski Lp norms, eigenvalues, Gershgorin discs, matrix decompositions (SVD, PA=LU, Cholesky, QR), and direct & iterative solvers for Ax=b.",
+            "applicationCategory": "EducationalApplication",
+            "educationalLevel": ["University", "Graduate", "High School"],
+            "learningResourceType": ["Interactive Simulation", "Mathematical Visualization"],
+            "operatingSystem": "All (Web Browser, WebGL, HTML5 Canvas)",
+            "browserRequirements": "Requires JavaScript and HTML5 Canvas / WebGL",
+            "softwareVersion": "1.0.0",
+            "license": "https://opensource.org/licenses/MIT",
+            "isAccessibleForFree": true,
+            "inLanguage": ["en", "it"],
+            "author": {
+              "@type": "Person",
+              "name": "Nicola Brecciaroli",
+              "url": "https://github.com/nik2208"
+            },
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "EUR"
+            },
+            "featureList": [
+              "2D and 3D determinant visualization (reference unit square/cube vs transformed parallelogram/parallelepiped)",
+              "Continuous Minkowski Lp norm explorer (p from 1 to infinity) for vectors and induced matrix norms ||A||_p with generalized condition number kappa_p(A)",
+              "Real and complex eigenvalues, eigenvectors, spectral radius rho(A), and Argand plane with Gershgorin discs",
+              "Matrix decompositions: SVD (U Sigma V^T), Gaussian LU (Naive, Partial Pivoting PA=LU, Complete Pivoting PAQ=LU), Cholesky (LL^T and LDL^T), and QR",
+              "Direct Ax=b solvers: Step-by-step Gaussian elimination, Cholesky, Thomas algorithm (TDMA) for tridiagonal matrices, Cramer's rule, and Moore-Penrose pseudoinverse",
+              "Iterative Ax=b solvers: Jacobi, Gauss-Seidel, SOR (Successive Over-Relaxation), and Conjugate Gradient (CG) with 2D/3D trajectory rendering and spectral radius rho(G) analysis"
+            ],
+            "about": [
+              { "@type": "Thing", "name": "Linear Algebra" },
+              { "@type": "Thing", "name": "Numerical Analysis" },
+              { "@type": "Thing", "name": "Eigenvalues and Eigenvectors" },
+              { "@type": "Thing", "name": "Singular Value Decomposition" },
+              { "@type": "Thing", "name": "Gaussian Elimination" },
+              { "@type": "Thing", "name": "Cholesky Decomposition" }
+            ]
+          },
+          {
+            "@type": "FAQPage",
+            "@id": "https://nik2208.github.io/matrix-warp/#faq",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How does Matrix Warp visualize the determinant in 2D and 3D?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "In 2D, Matrix Warp compares the reference unit square [0,1]^2 (Area = 1) with the transformed parallelogram spanned by Ae1 and Ae2 (Area = |det(A)|) and draws an orientation arc to show whether det(A) < 0 flips space. In 3D, it renders the unit cube [0,1]^3 (Volume = 1) alongside the transformed 3D parallelepiped (Volume = |det(A)|)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Which direct and iterative solvers for Ax = b are included in Matrix Warp?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Matrix Warp includes step-by-step Gaussian Elimination comparing Naive LU, Partial Pivoting (PA = LU), and Complete Pivoting (PAQ = LU), Cholesky Factorization (A = LL^T and LDL^T) with Sylvester principal minors verification, the O(n) Thomas Algorithm (TDMA) for tridiagonal matrices, Cramer's Rule, and SVD Moore-Penrose Pseudoinverse. For iterative methods, it simulates Jacobi, Gauss-Seidel, SOR (with adjustable omega), and Conjugate Gradient (CG), plotting their 2D/3D trajectories and iteration matrix spectral radii rho(G)."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "How are Positive Definiteness (SPD) and Diagonal Dominance related to conditioning and spectral radius?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Matrix Warp explicitly pairs Sylvester's criterion for Symmetric Positive Definite (SPD) matrices (all leading principal minors Delta_k > 0 and eigenvalues lambda_i > 0) with the L2 condition number kappa_2(A) = sigma_max / sigma_min, determining Cholesky applicability and Conjugate Gradient convergence speed. It also pairs row/column Diagonal Dominance (|a_ii| > sum_{j!=i} |a_ij|) with the spectral radius rho(A) and the iteration matrix spectral radii rho(G_Jacobi) and rho(G_GS), guaranteeing stationary iterative convergence when rho(G) < 1."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200 overflow-hidden">
     <div id="root"></div>
+
+    <!-- Semantic Fallback for Search & AI Crawlers that do not execute JavaScript -->
+    <noscript>
+      <main>
+        <h1>Matrix Warp — Interactive 2D &amp; 3D Linear Algebra, Spectral Analysis, Minkowski Lp Norm &amp; Ax=b Solver Visualizer</h1>
+        <p>
+          Matrix Warp is an interactive mathematical and numerical linear algebra web application for visualizing 2x2 (2D) and 3x3 (3D) matrices.
+        </p>
+        <h2>Features</h2>
+        <ul>
+          <li><strong>2D &amp; 3D Determinant</strong>: Unit square/cube vs transformed parallelogram/parallelepiped with signed area/volume |det(A)| and orientation flip detection.</li>
+          <li><strong>Minkowski Lp Norms (p in [1, infinity])</strong>: Continuous slider from L1 (Manhattan) to L2 (Euclidean) to L_infinity (Chebyshev), induced matrix norm ||A||_p, and condition number kappa_p(A).</li>
+          <li><strong>Eigenvalues, Eigenvectors &amp; Gershgorin Discs</strong>: Real and complex spectrum on the Argand plane, spectral radius rho(A), and characteristic polynomial.</li>
+          <li><strong>Direct Solvers for Ax = b</strong>: Gaussian Elimination (Naive LU, Partial Pivoting PA=LU, Complete Pivoting PAQ=LU), Cholesky Factorization (LL^T and LDL^T) with Sylvester minors, Thomas Algorithm (TDMA) for tridiagonal systems, and Cramer's Rule.</li>
+          <li><strong>Iterative Solvers for Ax = b</strong>: Jacobi, Gauss-Seidel, SOR, and Conjugate Gradient (CG) with 2D/3D trajectories, diagonal dominance checks, and iteration spectral radius rho(G).</li>
+        </ul>
+        <p>
+          Read the full machine-readable mathematical specification at <a href="/matrix-warp/llms-full.txt">llms-full.txt</a> or <a href="/matrix-warp/llms.txt">llms.txt</a>.
+        </p>
+      </main>
+    </noscript>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

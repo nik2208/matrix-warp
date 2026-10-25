@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#e879f9" />
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)" />
+
+  <!-- Decorative Warped Linear Grid on Right -->
+  <g transform="translate(860, 315)" opacity="0.85">
+    <g stroke="#1e293b" stroke-width="1.5">
+      <line x1="-220" y1="-220" x2="220" y2="-220" />
+      <line x1="-220" y1="-110" x2="220" y2="-110" />
+      <line x1="-220" y1="0" x2="220" y2="0" />
+      <line x1="-220" y1="110" x2="220" y2="110" />
+      <line x1="-220" y1="220" x2="220" y2="220" />
+      <line x1="-220" y1="-220" x2="-220" y2="220" />
+      <line x1="-110" y1="-220" x2="-110" y2="220" />
+      <line x1="0" y1="-220" x2="0" y2="220" />
+      <line x1="110" y1="-220" x2="110" y2="220" />
+      <line x1="220" y1="-220" x2="220" y2="220" />
+    </g>
+    <!-- Determinant Parallelogram -->
+    <polygon points="0,0 140,-45 205,-165 65,-120" fill="#10b981" fill-opacity="0.22" stroke="#34d399" stroke-width="3" />
+    <!-- SVD Ellipse -->
+    <ellipse cx="0" cy="0" rx="175" ry="95" transform="rotate(-28)" fill="#c084fc" fill-opacity="0.12" stroke="#c084fc" stroke-width="2.5" stroke-dasharray="8 6" />
+    <!-- Lp Diamond -->
+    <polygon points="0,-130 130,0 0,130 -130,0" fill="none" stroke="#818cf8" stroke-width="2" />
+    <!-- Vectors -->
+    <line x1="0" y1="0" x2="140" y2="-45" stroke="#10b981" stroke-width="4" />
+    <line x1="0" y1="0" x2="65" y2="-120" stroke="#f59e0b" stroke-width="4" />
+    <line x1="0" y1="0" x2="165" y2="-135" stroke="#f43f5e" stroke-width="5" />
+    <circle cx="165" cy="-135" r="7" fill="#f43f5e" />
+  </g>
+
+  <!-- Left Branding & Typography -->
+  <g transform="translate(72, 95)">
+    <rect x="0" y="0" width="76" height="76" rx="18" fill="#0ea5e9" />
+    <text x="38" y="50" text-anchor="middle" font-family="monospace" font-weight="800" font-size="36" fill="#ffffff">[A]</text>
+    <text x="96" y="36" font-family="system-ui, -apple-system, sans-serif" font-weight="700" font-size="22" fill="#38bdf8" letter-spacing="2">INTERACTIVE LINEAR ALGEBRA &amp; NUMERICAL STUDIO</text>
+    <text x="96" y="68" font-family="monospace" font-weight="600" font-size="18" fill="#94a3b8">nik2208.github.io/matrix-warp</text>
+
+    <text x="0" y="155" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="68" fill="#f8fafc">Matrix Warp</text>
+    <rect x="0" y="178" width="520" height="5" rx="2.5" fill="url(#accent)" />
+
+    <text x="0" y="232" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="26" fill="#cbd5e1">2D &amp; 3D Linear Transformations, Spectral Analysis,</text>
+    <text x="0" y="268" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="26" fill="#cbd5e1">Minkowski Lp Norms &amp; Ax = b Direct/Iterative Solvers</text>
+
+    <!-- Feature Pills -->
+    <g transform="translate(0, 315)" font-family="monospace" font-size="18" font-weight="600">
+      <rect x="0" y="0" width="215" height="44" rx="10" fill="#0f172a" stroke="#10b981" stroke-width="1.5" />
+      <text x="107" y="28" text-anchor="middle" fill="#34d399">2D/3D |det(A)|</text>
+
+      <rect x="230" y="0" width="235" height="44" rx="10" fill="#0f172a" stroke="#818cf8" stroke-width="1.5" />
+      <text x="347" y="28" text-anchor="middle" fill="#a5b4fc">Lp Norms p∈[1,∞]</text>
+
+      <rect x="480" y="0" width="235" height="44" rx="10" fill="#0f172a" stroke="#2dd4bf" stroke-width="1.5" />
+      <text x="597" y="28" text-anchor="middle" fill="#5eead4">Eigen &amp; Gershgorin</text>
+
+      <rect x="0" y="60" width="345" height="44" rx="10" fill="#0f172a" stroke="#38bdf8" stroke-width="1.5" />
+      <text x="172" y="88" text-anchor="middle" fill="#7dd3fc">Gauss • LU • Cholesky • Thomas</text>
+
+      <rect x="360" y="60" width="355" height="44" rx="10" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" />
+      <text x="537" y="88" text-anchor="middle" fill="#fcd34d">Jacobi • GS • SOR • Krylov CG</text>
+    </g>
+  </g>
+</svg>

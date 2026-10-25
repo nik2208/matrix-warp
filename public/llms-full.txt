@@ -1,0 +1,56 @@
+# Matrix Warp — Complete Mathematical & Technical Documentation (GEO Reference)
+
+- **Canonical URL**: https://nik2208.github.io/matrix-warp/
+- **Repository**: https://github.com/nik2208/matrix-warp
+- **License**: MIT
+- **Primary Topics**: Linear Algebra, Numerical Analysis, Matrix Visualization, Determinants, Eigenvalues, Singular Value Decomposition (SVD), Minkowski Lp Norms, Gaussian Elimination, LU Factorization, Cholesky Decomposition, Thomas Algorithm (TDMA), Jacobi Method, Gauss-Seidel Method, Successive Over-Relaxation (SOR), Conjugate Gradient (CG).
+
+---
+
+## 1. Geometric Operator & Determinant (2D & 3D)
+- **2D Determinant**: Visualizes the unit square $[0,1]^2$ ($\text{Area}=1$) alongside its image under $A$, the parallelogram spanned by $Ae_1$ and $Ae_2$ with signed area $\det(A) = a_{11}a_{22} - a_{12}a_{21}$. Includes an orientation arc from $Ae_1$ to $Ae_2$ indicating counter-clockwise ($\det(A)>0$) vs clockwise/flipped ($\det(A)<0$) orientation.
+- **3D Determinant**: Visualizes the unit cube $[0,1]^3$ ($\text{Vol}=1$) alongside the 3D parallelepiped spanned by $Ae_1, Ae_2, Ae_3$ with volume $|\det(A)|$.
+- **Continuous Homotopy**: $M(t) = (1-t)I + tA$ for $t \in [0,1]$.
+- **Power Iteration**: $v^{(k)} = A^k v^{(0)}$ (optionally normalized at each step $v^{(k)} / \|v^{(k)}\|_2$) to demonstrate convergence toward the dominant eigenvector associated with $\rho(A) = \max_i |\lambda_i|$.
+
+## 2. Minkowski $L_p$ Norms & Condition Number ($p \in [1, \infty]$)
+- **Vector $p$-Norm**:
+  $$\|x\|_p = \left(\sum_{i=1}^n |x_i|^p\right)^{1/p}, \quad \|x\|_\infty = \max_{1 \le i \le n} |x_i|$$
+- **Induced Operator Matrix Norm**:
+  $$\|A\|_p = \max_{\|x\|_p = 1} \|Ax\|_p$$
+  With exact closed-form formulas at the endpoints:
+  - $\|A\|_1 = \max_j \sum_i |a_{ij}|$ (maximum absolute column sum)
+  - $\|A\|_2 = \sigma_{\max}(A)$ (largest singular value)
+  - $\|A\|_\infty = \max_i \sum_j |a_{ij}|$ (maximum absolute row sum)
+- **Generalized Condition Number**:
+  $$\kappa_p(A) = \|A\|_p \cdot \|A^{-1}\|_p$$
+
+## 3. Spectral Analysis, Gershgorin Circle Theorem & Decompositions
+- **Characteristic Polynomial**:
+  - 2D: $p(\lambda) = \lambda^2 - \operatorname{tr}(A)\lambda + \det(A) = 0$
+  - 3D: $p(\lambda) = \lambda^3 - \operatorname{tr}(A)\lambda^2 + (M_{11}+M_{22}+M_{33})\lambda - \det(A) = 0$
+- **Gershgorin Discs**: Every eigenvalue $\lambda$ of $A$ lies in at least one disc:
+  $$D_i = \left\{ z \in \mathbb{C} : |z - a_{ii}| \le R_i = \sum_{j \neq i} |a_{ij}| \right\}$$
+- **Matrix Decompositions**:
+  - **SVD**: $A = U \Sigma V^T$ with singular values $\sigma_1 \ge \sigma_2 (\ge \sigma_3) \ge 0$.
+  - **Partial Pivoting LU**: $PA = LU$ where $P$ is a permutation matrix, $L$ is unit lower-triangular with $|l_{ij}| \le 1$, and $U$ is upper-triangular.
+  - **Naive LU**: $A = L_{\text{naive}} U_{\text{naive}}$ without row exchanges (detects zero-pivot breakdown).
+  - **Complete Pivoting LU**: $P_c A Q_c = L_c U_c$ permuting both rows and columns.
+  - **Cholesky**: $A = L L^T$ and root-free $A = L_D D L_D^T$ for Symmetric Positive Definite (SPD) matrices, verified via Sylvester's criterion ($\Delta_1 > 0, \Delta_2 > 0, \Delta_3 > 0$).
+  - **QR**: $A = QR$ via orthogonal-triangular Gram-Schmidt factorization.
+
+## 4. Linear System $Ax = b$ Direct & Iterative Solvers
+- **Structural Diagnostics**:
+  - Pairs **Positive Definiteness (SPD)** and **Sylvester Leading Principal Minors ($\Delta_k$)** with **Condition Number $\kappa_2(A)$**.
+  - Pairs **Strict/Weak Diagonal Dominance** ($|a_{ii}| > \sum_{j\neq i} |a_{ij}|$) with **Spectral Radius $\rho(A)$** and iteration matrix spectral radii $\rho(G)$.
+- **Direct Solvers**:
+  1. **Gaussian Elimination**: Step-by-step augmented states $[A^{(k)} | b^{(k)}]$, forward substitution $Ly = Pb$, and back-substitution $Ux = y$.
+  2. **Cholesky Solver**: $Ly = b$ followed by $L^T x = y$ for SPD systems.
+  3. **Thomas Algorithm (TDMA)**: $O(n)$ forward sweep ($c'_i, d'_i$) and backward substitution for tridiagonal systems ($a_{ij} = 0$ for $|i-j|>1$).
+  4. **Cramer's Rule**: $x_i = \det(A_i) / \det(A)$.
+  5. **Moore-Penrose Pseudoinverse**: Minimum-norm least-squares solution $x^+ = A^+ b = V \Sigma^+ U^T b$ when $A$ is singular.
+- **Iterative Solvers**:
+  1. **Jacobi**: $x^{(k+1)} = -D^{-1}(L+U)x^{(k)} + D^{-1}b$, iteration matrix $G_J = -D^{-1}(L+U)$.
+  2. **Gauss-Seidel**: $x^{(k+1)} = -(D+L)^{-1}Ux^{(k)} + (D+L)^{-1}b$, iteration matrix $G_{GS} = -(D+L)^{-1}U$.
+  3. **Successive Over-Relaxation (SOR)**: $x^{(k+1)} = (D+\omega L)^{-1}[(1-\omega)D - \omega U]x^{(k)} + \omega(D+\omega L)^{-1}b$ for $\omega \in (0,2)$.
+  4. **Conjugate Gradient (CG / Krylov CGNR)**: Orthogonal residual projection in Krylov subspaces $\mathcal{K}_k(A, r^{(0)})$, converging in at most $n$ steps.
