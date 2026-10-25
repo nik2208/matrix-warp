@@ -1,4 +1,15 @@
-import type { Complex, EigenPair, Metrics, SVDResult, StabilityLevel } from '../types/math'
+import type {
+  Complex,
+  EigenPair,
+  GershgorinDisc,
+  LUDecomposition,
+  LpMetrics,
+  MatrixProperties,
+  Metrics,
+  QRDecomposition,
+  SVDResult,
+  StabilityLevel,
+} from '../types/math'
 
 const EPS = 1e-10
 
@@ -57,10 +68,33 @@ export function vecNorm(v: number[]): number {
   return Math.hypot(...v)
 }
 
+export function vecNormP(v: number[], p: number): number {
+  if (!Number.isFinite(p) || p > 50) {
+    let maxVal = 0
+    for (const x of v) {
+      const ax = Math.abs(x)
+      if (ax > maxVal) maxVal = ax
+    }
+    return maxVal
+  }
+  if (p === 1) {
+    let sum = 0
+    for (const x of v) sum += Math.abs(x)
+    return sum
+  }
+  if (p === 2) {
+    return Math.hypot(...v)
+  }
+  let sum = 0
+  for (const x of v) {
+    sum += Math.pow(Math.abs(x), p)
+  }
+  return Math.pow(sum, 1 / p)
+}
+
 export function normalizeVec(v: number[]): number[] {
   const n = vecNorm(v)
   if (n < 1e-12) return v.map(() => 0)
-  // Canonical sign: make the first significant component positive for visual stability
   let sign = 1
   for (const x of v) {
     if (Math.abs(x) > 1e-6) {
@@ -115,6 +149,26 @@ export function computeFrobenius(a: number[][]): number {
   return Math.sqrt(s)
 }
 
+export function computeNorm1(a: number[][]): number {
+  const n = a.length
+  let maxCol = 0
+  for (let c = 0; c < n; c++) {
+    let sum = 0
+    for (let r = 0; r < n; r++) sum += Math.abs(a[r][c])
+    if (sum > maxCol) maxCol = sum
+  }
+  return maxCol
+}
+
+export function computeNormInf(a: number[][]): number {
+  let maxRow = 0
+  for (const row of a) {
+    const sum = row.reduce((acc, v) => acc + Math.abs(v), 0)
+    if (sum > maxRow) maxRow = sum
+  }
+  return maxRow
+}
+
 export function invertMatrix(a: number[][]): number[][] | null {
   const n = a.length
   const d = computeDet(a)
@@ -144,17 +198,12 @@ export function invertMatrix(a: number[][]): number[][] | null {
   ]
 }
 
-/**
- * Jacobi eigenvalue solver for real symmetric n x n matrices (n = 2 or 3).
- * Returns eigenvalues and corresponding orthonormal eigenvectors (as column vectors).
- */
 function jacobiSymmetric(sym: number[][]): { values: number[]; vectors: number[][] } {
   const n = sym.length
   const A = cloneMatrix(sym)
   const V = identityMatrix(n as 2 | 3)
 
   for (let iter = 0; iter < 50; iter++) {
-    // Find largest off-diagonal entry
     let maxVal = 0
     let p = 0
     let q = 1
@@ -173,7 +222,8 @@ function jacobiSymmetric(sym: number[][]): { values: number[]; vectors: number[]
     const aqq = A[q][q]
     const apq = A[p][q]
     const tau = (aqq - app) / (2 * apq)
-    const t = tau >= 0 ? 1 / (tau + Math.sqrt(1 + tau * tau)) : -1 / (-tau + Math.sqrt(1 + tau * tau))
+    const t =
+      tau >= 0 ? 1 / (tau + Math.sqrt(1 + tau * tau)) : -1 / (-tau + Math.sqrt(1 + tau * tau))
     const c = 1 / Math.sqrt(1 + t * t)
     const s = t * c
 
@@ -208,9 +258,6 @@ function jacobiSymmetric(sym: number[][]): { values: number[]; vectors: number[]
   return { values, vectors }
 }
 
-/**
- * Complete an incomplete set of orthonormal vectors in R^n to a full orthonormal basis.
- */
 function completeOrthonormalBasis(existing: number[][], n: number): number[][] {
   const basis = existing.map((v) => [...v])
   const candidates =
@@ -246,20 +293,17 @@ export function computeSVD(a: number[][]): SVDResult {
   const ata = multiplyMatrices(at, a)
   const { vectors: rawV } = jacobiSymmetric(ata)
 
-  // Compute Av_i and exact singular values ||A v_i||_2
   const items = rawV.map((v) => {
     const av = applyMatrix(a, v)
     const sigma = vecNorm(av)
     return { sigma, v, av }
   })
 
-  // Sort descending by sigma
   items.sort((x, y) => y.sigma - x.sigma)
 
   const singularValues = items.map((it) => it.sigma)
   const vVectors = items.map((it) => it.v)
 
-  // Construct orthonormal left singular vectors U
   const validU: number[][] = []
   for (const it of items) {
     if (it.sigma > 1e-10) {
@@ -282,6 +326,92 @@ export function computeSVD(a: number[][]): SVDResult {
     uVectors,
     vVectors,
   }
+}
+
+export function computePseudoinverse(svd: SVDResult): number[][] {
+  const n = svd.singularValues.length
+  // A^+ = sum_{sigma_i > 1e-8} (1 / sigma_i) v_i u_i^T
+  const pinv: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+  for (let k = 0; k < n; k++) {
+    const s = svd.singularValues[k]
+    if (s > 1e-8) {
+      const u = svd.uVectors[k]
+      const v = svd.vVectors[k]
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          pinv[i][j] += (v[i] * u[j]) / s
+        }
+      }
+    }
+  }
+  return pinv
+}
+
+export function computeLU(a: number[][]): LUDecomposition {
+  const n = a.length as 2 | 3
+  const U = cloneMatrix(a)
+  const L = identityMatrix(n)
+  const P = identityMatrix(n)
+  let swaps = 0
+
+  for (let k = 0; k < n; k++) {
+    let maxRow = k
+    let maxVal = Math.abs(U[k][k])
+    for (let r = k + 1; r < n; r++) {
+      if (Math.abs(U[r][k]) > maxVal) {
+        maxVal = Math.abs(U[r][k])
+        maxRow = r
+      }
+    }
+    if (maxRow !== k) {
+      ;[U[k], U[maxRow]] = [U[maxRow], U[k]]
+      ;[P[k], P[maxRow]] = [P[maxRow], P[k]]
+      for (let j = 0; j < k; j++) {
+        ;[L[k][j], L[maxRow][j]] = [L[maxRow][j], L[k][j]]
+      }
+      swaps++
+    }
+    if (Math.abs(U[k][k]) > 1e-12) {
+      for (let i = k + 1; i < n; i++) {
+        const factor = U[i][k] / U[k][k]
+        L[i][k] = factor
+        for (let j = k; j < n; j++) {
+          U[i][j] -= factor * U[k][j]
+        }
+      }
+    }
+  }
+  return { P, L, U, swaps }
+}
+
+export function computeQR(a: number[][]): QRDecomposition {
+  const n = a.length as 2 | 3
+  const cols = Array.from({ length: n }, (_, j) => a.map((row) => row[j]))
+  const qCols: number[][] = []
+  const R: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+
+  for (let j = 0; j < n; j++) {
+    let v = [...cols[j]]
+    for (let i = 0; i < j; i++) {
+      const q = qCols[i]
+      const rij = dotVec(q, cols[j])
+      R[i][j] = rij
+      v = v.map((val, idx) => val - rij * q[idx])
+    }
+    const norm = vecNorm(v)
+    R[j][j] = norm
+    if (norm > 1e-10) {
+      qCols.push(v.map((val) => val / norm))
+    } else {
+      const completed = completeOrthonormalBasis(qCols, n)
+      qCols.push(completed[qCols.length] ?? Array(n).fill(0))
+    }
+  }
+
+  const Q: number[][] = Array.from({ length: n }, (_, r) =>
+    Array.from({ length: n }, (__, c) => qCols[c][r])
+  )
+  return { Q, R }
 }
 
 function makeEigenPair(re: number, im: number, vec: number[] | null): EigenPair {
@@ -316,7 +446,6 @@ function solveEigen2(a: number[][]): EigenPair[] {
       [a[1][0], a[1][1] - lambda],
     ]
     const svdB = computeSVD(b)
-    // Count how many singular values of (A - lambda I) are ~0
     const nullVecs: number[][] = []
     for (let i = svdB.singularValues.length - 1; i >= 0; i--) {
       if (svdB.singularValues[i] < 1e-6) {
@@ -324,10 +453,7 @@ function solveEigen2(a: number[][]): EigenPair[] {
       }
     }
     if (nullVecs.length >= 2) {
-      return [
-        makeEigenPair(lambda, 0, nullVecs[0]),
-        makeEigenPair(lambda, 0, nullVecs[1]),
-      ]
+      return [makeEigenPair(lambda, 0, nullVecs[0]), makeEigenPair(lambda, 0, nullVecs[1])]
     }
     const v1 = nullVecs[0] ?? svdB.vVectors[1]
     return [makeEigenPair(lambda, 0, v1), makeEigenPair(lambda, 0, null)]
@@ -346,10 +472,7 @@ function solveEigen2(a: number[][]): EigenPair[] {
     return svdB.vVectors[1]
   }
 
-  return [
-    makeEigenPair(l1, 0, extractVec2(l1)),
-    makeEigenPair(l2, 0, extractVec2(l2)),
-  ]
+  return [makeEigenPair(l1, 0, extractVec2(l1)), makeEigenPair(l2, 0, extractVec2(l2))]
 }
 
 function cbrt(x: number): number {
@@ -373,7 +496,6 @@ function solveEigen3(a: number[][]): EigenPair[] {
   const disc = halfQ * halfQ + thirdP * thirdP * thirdP
 
   if (disc > 1e-11) {
-    // 1 real root, 2 complex conjugate roots
     const sqrtD = Math.sqrt(disc)
     const u = cbrt(-halfQ + sqrtD)
     const v = cbrt(-halfQ - sqrtD)
@@ -396,7 +518,6 @@ function solveEigen3(a: number[][]): EigenPair[] {
     ]
   }
 
-  // 3 real roots
   let roots: number[]
   if (Math.abs(p) < 1e-12) {
     const y = cbrt(-q)
@@ -412,10 +533,8 @@ function solveEigen3(a: number[][]): EigenPair[] {
     ]
   }
 
-  // Sort real roots by descending magnitude
   roots.sort((x, y) => Math.abs(y) - Math.abs(x))
 
-  // Group close roots so repeated eigenvalues get distinct orthogonal nullspace vectors
   const groups: { lambda: number; indices: number[] }[] = []
   roots.forEach((r, idx) => {
     const existing = groups.find((g) => Math.abs(g.lambda - r) < 1e-5)
@@ -435,7 +554,6 @@ function solveEigen3(a: number[][]): EigenPair[] {
       [a[2][0], a[2][1], a[2][2] - l],
     ]
     const svdB = computeSVD(b)
-    // Candidate eigenvectors are right singular vectors from smallest singular value upwards
     const nullCandidates: (number[] | null)[] = []
     for (let k = 0; k < g.indices.length; k++) {
       const svIdx = 2 - k
@@ -453,11 +571,106 @@ function solveEigen3(a: number[][]): EigenPair[] {
   return pairs
 }
 
+function formatCharacteristicPoly(a: number[][]): string {
+  const n = a.length
+  const term = (coeff: number, power: string) => {
+    if (Math.abs(coeff) < 1e-9) return ''
+    const sign = coeff >= 0 ? ' + ' : ' − '
+    const absVal = Math.abs(coeff)
+    const numStr = Math.abs(absVal - 1) < 1e-9 && power !== '' ? '' : formatNum(absVal, 2)
+    return `${sign}${numStr}${power}`
+  }
+
+  if (n === 2) {
+    const tr = computeTrace(a)
+    const d = det2(a)
+    const raw = `λ²${term(-tr, 'λ')}${term(d, '')}`
+    return raw.trim() === 'λ²' ? 'λ² = 0' : `${raw} = 0`
+  }
+
+  const c2 = computeTrace(a)
+  const m01 = a[0][0] * a[1][1] - a[0][1] * a[1][0]
+  const m02 = a[0][0] * a[2][2] - a[0][2] * a[2][0]
+  const m12 = a[1][1] * a[2][2] - a[1][2] * a[2][1]
+  const c1 = m01 + m02 + m12
+  const c0 = det3(a)
+  return `λ³${term(-c2, 'λ²')}${term(c1, 'λ')}${term(-c0, '')} = 0`
+}
+
+function analyzeMatrixProperties(a: number[][], eigenPairs: EigenPair[]): MatrixProperties {
+  const n = a.length
+  const tol = 1e-6
+
+  // Symmetric: A = A^T
+  let isSymmetric = true
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (Math.abs(a[i][j] - a[j][i]) > tol) isSymmetric = false
+    }
+  }
+
+  // Orthogonal: A^T A = I
+  const at = transposeMatrix(a)
+  const ata = multiplyMatrices(at, a)
+  const aat = multiplyMatrices(a, at)
+  const id = identityMatrix(n as 2 | 3)
+  let isOrthogonal = true
+  let isNormal = true
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (Math.abs(ata[i][j] - id[i][j]) > 1e-4) isOrthogonal = false
+      if (Math.abs(ata[i][j] - aat[i][j]) > 1e-4) isNormal = false
+    }
+  }
+
+  // Positive definite: symmetric & all eigenvalues > 0
+  const isPositiveDefinite =
+    isSymmetric && eigenPairs.every((p) => p.isReal && p.value.re > 1e-6)
+
+  // Strictly diagonally dominant: |a_ii| > sum_{j!=i} |a_ij|
+  let isStrictlyDiagonallyDominant = true
+  for (let i = 0; i < n; i++) {
+    const diag = Math.abs(a[i][i])
+    let off = 0
+    for (let j = 0; j < n; j++) {
+      if (i !== j) off += Math.abs(a[i][j])
+    }
+    if (diag <= off + 1e-9) isStrictlyDiagonallyDominant = false
+  }
+
+  // Idempotent: A^2 = A; Involutory: A^2 = I
+  const a2 = multiplyMatrices(a, a)
+  let isIdempotent = true
+  let isInvolutory = true
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (Math.abs(a2[i][j] - a[i][j]) > 1e-4) isIdempotent = false
+      if (Math.abs(a2[i][j] - id[i][j]) > 1e-4) isInvolutory = false
+    }
+  }
+
+  return {
+    isSymmetric,
+    isOrthogonal,
+    isNormal,
+    isPositiveDefinite,
+    isStrictlyDiagonallyDominant,
+    isIdempotent,
+    isInvolutory,
+  }
+}
+
+export function computeEigenvaluesOnly(a: number[][]): EigenPair[] {
+  return a.length === 2 ? solveEigen2(a) : solveEigen3(a)
+}
+
 export function computeMetrics(a: number[][]): Metrics {
   const dim = a.length as 2 | 3
   const det = computeDet(a)
   const trace = computeTrace(a)
   const normFrobenius = computeFrobenius(a)
+  const norm1 = computeNorm1(a)
+  const normInf = computeNormInf(a)
   const svd = computeSVD(a)
   const singularValues = svd.singularValues
   const sigmaMax = singularValues[0] ?? 0
@@ -514,15 +727,42 @@ export function computeMetrics(a: number[][]): Metrics {
     .map((p) => p.vector)
     .filter((v): v is number[] => v !== null)
 
+  const spectralRadius = Math.max(0, ...eigenPairs.map((p) => p.modulus))
+  const characteristicPoly = formatCharacteristicPoly(a)
   const inverse = invertMatrix(a)
+  const pseudoinverse = computePseudoinverse(svd)
+
+  const gershgorin: GershgorinDisc[] = a.map((row, i) => ({
+    row: i + 1,
+    center: row[i],
+    radius: row.reduce((acc, v, j) => (i === j ? acc : acc + Math.abs(v)), 0),
+  }))
+
+  const properties = analyzeMatrixProperties(a, eigenPairs)
+  const lu = computeLU(a)
+  const qr = computeQR(a)
+
+  const colspaceBasis: number[][] = []
+  const nullspaceBasis: number[][] = []
+  svd.singularValues.forEach((s, idx) => {
+    if (s > 1e-7) {
+      colspaceBasis.push(svd.uVectors[idx])
+    } else {
+      nullspaceBasis.push(svd.vVectors[idx])
+    }
+  })
 
   return {
     det,
     trace,
     rank,
     nullity,
+    spectralRadius,
+    characteristicPoly,
     normFrobenius,
     normSpectral,
+    norm1,
+    normInf,
     cond,
     singular,
     orientationFlipped,
@@ -534,12 +774,157 @@ export function computeMetrics(a: number[][]): Metrics {
     singularValues,
     svd,
     inverse,
+    pseudoinverse,
+    gershgorin,
+    properties,
+    lu,
+    qr,
+    nullspaceBasis,
+    colspaceBasis,
   }
 }
 
 /**
- * Compute sequence v_0, v_1, ..., v_k where v_{m} = A v_{m-1} (optionally normalized at each step).
+ * Sample points on the 2D L_p unit circle { x in R^2 : ||x||_p = 1 }
  */
+export function sampleLpUnitBall2D(p: number, segments = 180): [number, number][] {
+  const pts: [number, number][] = []
+  for (let i = 0; i <= segments; i++) {
+    const theta = (i / segments) * Math.PI * 2
+    const cx = Math.cos(theta)
+    const cy = Math.sin(theta)
+    const n = vecNormP([cx, cy], p)
+    pts.push(n > 1e-12 ? [cx / n, cy / n] : [0, 0])
+  }
+  return pts
+}
+
+/**
+ * Compute induced matrix norm ||A||_p = max_{||x||_p = 1} ||Ax||_p and maximizer x_max,
+ * plus vector norms ||v||_p, ||Av||_p, ||b||_p and condition number kappa_p(A).
+ */
+export function computeLpMetrics(
+  a: number[][],
+  v: number[],
+  b: number[],
+  p: number
+): LpMetrics {
+  const dim = a.length as 2 | 3
+  const av = applyMatrix(a, v)
+  const vecNormV = vecNormP(v, p)
+  const vecNormAv = vecNormP(av, p)
+  const vecNormB = vecNormP(b, p)
+  const pLabel = !Number.isFinite(p) ? '∞' : Number(p.toFixed(2)).toString()
+
+  // Candidate unit vectors on ||x||_p = 1
+  const candidates: number[][] = []
+  if (dim === 2) {
+    const steps = 360
+    for (let i = 0; i < steps; i++) {
+      const theta = (i / steps) * Math.PI * 2
+      const raw = [Math.cos(theta), Math.sin(theta)]
+      const n = vecNormP(raw, p)
+      if (n > 1e-12) candidates.push([raw[0] / n, raw[1] / n])
+    }
+    // Include exact cardinal & diagonal corners for L1 and L_inf
+    const corners = [
+      [1, 0],
+      [0, 1],
+      [1, 1],
+      [1, -1],
+    ]
+    for (const c of corners) {
+      const n = vecNormP(c, p)
+      candidates.push([c[0] / n, c[1] / n])
+    }
+  } else {
+    // 3D spherical grid projected onto ||x||_p = 1 + cube/octahedron vertices
+    const latSteps = 28
+    const lonSteps = 56
+    for (let i = 0; i <= latSteps; i++) {
+      const phi = (i / latSteps) * Math.PI
+      const sp = Math.sin(phi)
+      const cp = Math.cos(phi)
+      for (let j = 0; j < lonSteps; j++) {
+        const theta = (j / lonSteps) * Math.PI * 2
+        const raw = [sp * Math.cos(theta), sp * Math.sin(theta), cp]
+        const n = vecNormP(raw, p)
+        if (n > 1e-12) candidates.push([raw[0] / n, raw[1] / n, raw[2] / n])
+      }
+    }
+    const special3 = [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1],
+      [1, 1, 1],
+      [1, 1, -1],
+      [1, -1, 1],
+      [-1, 1, 1],
+    ]
+    for (const c of special3) {
+      const n = vecNormP(c, p)
+      candidates.push([c[0] / n, c[1] / n, c[2] / n])
+    }
+  }
+
+  let matrixNormP = 0
+  let maximizerX: number[] = dim === 2 ? [1, 0] : [1, 0, 0]
+  let maximizerAx: number[] = applyMatrix(a, maximizerX)
+
+  for (const x of candidates) {
+    const ax = applyMatrix(a, x)
+    const val = vecNormP(ax, p)
+    if (val > matrixNormP) {
+      matrixNormP = val
+      maximizerX = x
+      maximizerAx = ax
+    }
+  }
+
+  // Exact analytical override for p = 1 and p = Infinity
+  if (p === 1) {
+    matrixNormP = computeNorm1(a)
+  } else if (!Number.isFinite(p)) {
+    matrixNormP = computeNormInf(a)
+  }
+
+  const inv = invertMatrix(a)
+  let invMatrixNormP = Infinity
+  if (inv) {
+    if (p === 1) {
+      invMatrixNormP = computeNorm1(inv)
+    } else if (!Number.isFinite(p)) {
+      invMatrixNormP = computeNormInf(inv)
+    } else {
+      let maxInv = 0
+      for (const x of candidates) {
+        const invX = applyMatrix(inv, x)
+        const val = vecNormP(invX, p)
+        if (val > maxInv) maxInv = val
+      }
+      invMatrixNormP = maxInv
+    }
+  }
+
+  const condP =
+    !inv || matrixNormP < 1e-12 || !Number.isFinite(invMatrixNormP)
+      ? Infinity
+      : matrixNormP * invMatrixNormP
+
+  return {
+    p,
+    pLabel,
+    vecNormV,
+    vecNormAv,
+    vecNormB,
+    matrixNormP,
+    invMatrixNormP,
+    condP,
+    maximizerX,
+    maximizerAx,
+  }
+}
+
 export function computePowerOrbit(
   a: number[][],
   v0: number[],
@@ -554,7 +939,6 @@ export function computePowerOrbit(
       const n = vecNorm(next)
       if (n > 1e-12) next = next.map((x) => x / n)
     } else {
-      // Guard against numeric explosion while preserving direction
       const n = vecNorm(next)
       if (n > 1e6) {
         next = next.map((x) => (x / n) * 1e6)

@@ -1,13 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import type { LayerVisibility, Metrics } from '../types/math'
+import type {
+  IterativeMethodId,
+  LayerVisibility,
+  LinearSystemSolution,
+  LpMetrics,
+  Metrics,
+} from '../types/math'
 import {
   applyMatrix,
   computePowerOrbit,
   computeSVD,
   det3,
   formatNum,
+  vecNormP,
 } from '../lib/mathEngine'
 
 interface Canvas3DProps {
@@ -15,7 +22,12 @@ interface Canvas3DProps {
   interpolatedMatrix: number[][]
   t: number
   vector: [number, number, number]
+  bVector: [number, number, number]
   metrics: Metrics
+  lpMetrics: LpMetrics
+  solution: LinearSystemSolution
+  iterStep: number
+  enabledMethods: Record<IterativeMethodId, boolean>
   powerMode: boolean
   powerK: number
   normalizePower: boolean
@@ -38,10 +50,14 @@ function build3DVectorArrow(
   color: number,
   radius = 0.032,
   headLength = 0.22,
-  headRadius = 0.085
+  headRadius = 0.085,
+  origin: number[] = [0, 0, 0]
 ): THREE.Group {
   const group = new THREE.Group()
-  const v = new THREE.Vector3(target[0], target[1], target[2])
+  const dx = target[0] - origin[0]
+  const dy = target[1] - origin[1]
+  const dz = target[2] - origin[2]
+  const v = new THREE.Vector3(dx, dy, dz)
   const len = v.length()
   if (len < 1e-4) return group
 
@@ -75,7 +91,90 @@ function build3DVectorArrow(
     group.quaternion.copy(quat)
   }
 
+  group.position.set(origin[0], origin[1], origin[2])
   return group
+}
+
+/**
+ * Projects a THREE.SphereGeometry onto the 3D Lp unit ball ||x||_p = 1
+ */
+function buildLpSphereGeometry(p: number, widthSegments = 32, heightSegments = 24): THREE.SphereGeometry {
+  const geo = new THREE.SphereGeometry(1, widthSegments, heightSegments)
+  const pos = geo.attributes.position
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i)
+    const y = pos.getY(i)
+    const z = pos.getZ(i)
+    const norm = vecNormP([x, y, z], p)
+    if (norm > 1e-8) {
+      pos.setXYZ(i, x / norm, y / norm, z / norm)
+    }
+  }
+  geo.computeVertexNormals()
+  return geo
+}
+
+/**
+ * Builds a translucent 3D plane for row equation n_x * x + n_y * y + n_z * z = b_i
+ */
+function buildRowPlaneMesh(
+  normal: number[],
+  bi: number,
+  color: number,
+  centerHint: number[]
+): THREE.Group {
+  const group = new THREE.Group()
+  const nVec = new THREE.Vector3(normal[0], normal[1], normal[2])
+  const nLenSq = nVec.lengthSq()
+  if (nLenSq < 1e-8) return group
+
+  const nUnit = nVec.clone().normalize()
+  // Closest point on the plane to centerHint (or origin)
+  const hint = new THREE.Vector3(centerHint[0] ?? 0, centerHint[1] ?? 0, centerHint[2] ?? 0)
+  const signedDist = (nVec.dot(hint) - bi) / nLenSq
+  const planeCenter = hint.clone().sub(nVec.clone().multiplyScalar(signedDist))
+  // Clamp plane center distance so plane stays inside viewport
+  if (planeCenter.length() > 4.5) {
+    planeCenter.copy(nVec.clone().multiplyScalar(bi / nLenSq))
+  }
+
+  const planeGeo = new THREE.PlaneGeometry(4.4, 4.4, 4, 4)
+  const planeMat = new THREE.MeshStandardMaterial({
+    color,
+    transparent: true,
+    opacity: 0.16,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  })
+  const mesh = new THREE.Mesh(planeGeo, planeMat)
+
+  const edgesGeo = new THREE.EdgesGeometry(planeGeo)
+  const edges = new THREE.LineSegments(
+    edgesGeo,
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.65 })
+  )
+
+  const zAxis = new THREE.Vector3(0, 0, 1)
+  if (nUnit.z < -0.9999) {
+    mesh.rotation.x = Math.PI
+    edges.rotation.x = Math.PI
+  } else {
+    const q = new THREE.Quaternion().setFromUnitVectors(zAxis, nUnit)
+    mesh.quaternion.copy(q)
+    edges.quaternion.copy(q)
+  }
+
+  mesh.position.copy(planeCenter)
+  edges.position.copy(planeCenter)
+  group.add(mesh, edges)
+  return group
+}
+
+const ITER_COLORS_HEX: Record<IterativeMethodId, number> = {
+  jacobi: 0x38bdf8,
+  'gauss-seidel': 0x34d399,
+  sor: 0xf59e0b,
+  cg: 0xe879f9,
 }
 
 export default function Canvas3D({
@@ -83,7 +182,12 @@ export default function Canvas3D({
   interpolatedMatrix,
   t,
   vector,
+  bVector,
   metrics,
+  lpMetrics,
+  solution,
+  iterStep,
+  enabledMethods,
   powerMode,
   powerK,
   normalizePower,
@@ -125,19 +229,17 @@ export default function Canvas3D({
     controls.autoRotateSpeed = 1.4
 
     // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.75)
+    const ambient = new THREE.AmbientLight(0xffffff, 0.78)
     const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.1)
     dirLight1.position.set(6, 10, 8)
     const dirLight2 = new THREE.DirectionalLight(0x38bdf8, 0.45)
     dirLight2.position.set(-6, -5, -4)
     scene.add(ambient, dirLight1, dirLight2)
 
-    // Base Reference Group (Grid + X/Y/Z Axes + Reference Unit Cube/Sphere)
     const baseGridGroup = new THREE.Group()
     const gridHelper = new THREE.GridHelper(10, 10, 0x334155, 0x1e293b)
     baseGridGroup.add(gridHelper)
 
-    // X (Red), Y (Green), Z (Blue) positive/negative coordinate lines
     const axisLen = 4.5
     const createAxisLine = (end: [number, number, number], hex: number) => {
       const geo = new THREE.BufferGeometry().setFromPoints([
@@ -222,29 +324,37 @@ export default function Canvas3D({
     const isFlipped = currentDet < -1e-8
     const isCollapsed = Math.abs(currentDet) <= 1e-8
 
-    // 1. UNIT CUBE & TRANSFORMED PARALLELEPIPED
+    // 1. DETERMINANT: REFERENCE UNIT CUBE [0,1]^3 & TRANSFORMED 3D PARALLELEPIPED
     if (layers.unitArea || layers.warpedGrid) {
-      // Subtle reference unit cube [0,1]^3
-      if (layers.baseGrid) {
-        const refBox = new THREE.BoxGeometry(1, 1, 1)
-        refBox.translate(0.5, 0.5, 0.5)
-        const refEdges = new THREE.EdgesGeometry(refBox)
-        const refLine = new THREE.LineSegments(
-          refEdges,
-          new THREE.LineDashedMaterial({
+      const refBox = new THREE.BoxGeometry(1, 1, 1)
+      refBox.translate(0.5, 0.5, 0.5)
+      if (layers.unitArea) {
+        const refMesh = new THREE.Mesh(
+          refBox,
+          new THREE.MeshBasicMaterial({
             color: 0x64748b,
-            dashSize: 0.08,
-            gapSize: 0.06,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.06,
+            depthWrite: false,
           })
         )
-        refLine.computeLineDistances()
-        dynamicGroup.add(refLine)
-        refBox.dispose()
+        dynamicGroup.add(refMesh)
       }
+      const refEdges = new THREE.EdgesGeometry(refBox)
+      const refLine = new THREE.LineSegments(
+        refEdges,
+        new THREE.LineDashedMaterial({
+          color: 0x94a3b8,
+          dashSize: 0.08,
+          gapSize: 0.06,
+          transparent: true,
+          opacity: 0.55,
+        })
+      )
+      refLine.computeLineDistances()
+      dynamicGroup.add(refLine)
 
-      // Transformed Parallelepiped
+      // Transformed Parallelepiped (Vol = |det(A)|)
       const paraGeo = new THREE.BoxGeometry(1, 1, 1)
       paraGeo.translate(0.5, 0.5, 0.5)
       paraGeo.applyMatrix4(mat4)
@@ -256,7 +366,7 @@ export default function Canvas3D({
           new THREE.MeshStandardMaterial({
             color: fillColor,
             transparent: true,
-            opacity: 0.18,
+            opacity: 0.22,
             side: THREE.DoubleSide,
             depthWrite: false,
           })
@@ -264,16 +374,17 @@ export default function Canvas3D({
         dynamicGroup.add(paraMesh)
       }
 
-      if (layers.warpedGrid) {
+      if (layers.warpedGrid || layers.unitArea) {
         const edgeColor = isCollapsed ? 0xfbbf24 : isFlipped ? 0xfb7185 : 0x34d399
         const edgesGeo = new THREE.EdgesGeometry(paraGeo)
         const paraEdges = new THREE.LineSegments(
           edgesGeo,
-          new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.85 })
+          new THREE.LineBasicMaterial({ color: edgeColor, transparent: true, opacity: 0.9 })
         )
         dynamicGroup.add(paraEdges)
+      }
 
-        // Transformed basis vectors Ae1, Ae2, Ae3
+      if (layers.warpedGrid) {
         const e1 = applyMatrix(activeMat, [1, 0, 0])
         const e2 = applyMatrix(activeMat, [0, 1, 0])
         const e3 = applyMatrix(activeMat, [0, 0, 1])
@@ -287,16 +398,14 @@ export default function Canvas3D({
 
     // 2. SVD UNIT SPHERE -> 3D ELLIPSOID & SINGULAR AXES
     if (layers.svdCircle) {
-      // Reference wireframe unit sphere
       const refSphereGeo = new THREE.SphereGeometry(1, 24, 16)
       const refSphereWire = new THREE.LineSegments(
         new THREE.WireframeGeometry(refSphereGeo),
-        new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.14 })
+        new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.12 })
       )
       dynamicGroup.add(refSphereWire)
       refSphereGeo.dispose()
 
-      // Exact transformed ellipsoid under M(t)
       const ellipGeo = new THREE.SphereGeometry(1, 36, 24)
       ellipGeo.applyMatrix4(mat4)
 
@@ -307,18 +416,17 @@ export default function Canvas3D({
           roughness: 0.3,
           metalness: 0.1,
           transparent: true,
-          opacity: 0.16,
+          opacity: 0.15,
           side: THREE.DoubleSide,
           depthWrite: false,
         })
       )
       const ellipWire = new THREE.LineSegments(
         new THREE.WireframeGeometry(ellipGeo),
-        new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.38 })
+        new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.35 })
       )
       dynamicGroup.add(ellipMesh, ellipWire)
 
-      // Principal SVD semi-axes sigma_i * u_i
       const activeSvd = computeSVD(activeMat)
       const axisColors = [0xe879f9, 0xa855f7, 0x7e22ce]
       activeSvd.singularValues.forEach((sigma, idx) => {
@@ -330,7 +438,43 @@ export default function Canvas3D({
       })
     }
 
-    // 3. 3D INVARIANT EIGENVECTOR AXES
+    // 2B. 3D Lp UNIT BALL & TRANSFORMED Lp BALL + MAXIMIZER A*x_max
+    if (layers.lpBall) {
+      const refLpGeo = buildLpSphereGeometry(lpMetrics.p, 28, 20)
+      const refLpWire = new THREE.LineSegments(
+        new THREE.WireframeGeometry(refLpGeo),
+        new THREE.LineBasicMaterial({ color: 0x6366f1, transparent: true, opacity: 0.25 })
+      )
+      dynamicGroup.add(refLpWire)
+
+      const warpedLpGeo = buildLpSphereGeometry(lpMetrics.p, 32, 24)
+      warpedLpGeo.applyMatrix4(mat4)
+      const warpedLpMesh = new THREE.Mesh(
+        warpedLpGeo,
+        new THREE.MeshStandardMaterial({
+          color: 0x6366f1,
+          roughness: 0.25,
+          metalness: 0.15,
+          transparent: true,
+          opacity: 0.18,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        })
+      )
+      const warpedLpWire = new THREE.LineSegments(
+        new THREE.WireframeGeometry(warpedLpGeo),
+        new THREE.LineBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.55 })
+      )
+      dynamicGroup.add(warpedLpMesh, warpedLpWire)
+
+      // Maximizer vector A * x_max
+      if (lpMetrics.maximizerX.length === 3) {
+        const axMax = applyMatrix(activeMat, lpMetrics.maximizerX)
+        dynamicGroup.add(build3DVectorArrow(axMax, 0x818cf8, 0.024, 0.18, 0.065))
+      }
+    }
+
+    // 3. 3D INVARIANT EIGENVECTOR AXES & SCALED EIGENVALUE ARROWS lambda_i * e_i
     if (layers.eigenLines) {
       const realPairs = metrics.eigenPairs.filter((p) => p.isReal && p.vector !== null)
       realPairs.forEach((pair, idx) => {
@@ -353,10 +497,113 @@ export default function Canvas3D({
         )
         line.computeLineDistances()
         dynamicGroup.add(line)
+
+        // Scaled eigenvalue vector lambda_i * e_i
+        const lam = pair.value.re
+        if (Math.abs(lam) > 0.05) {
+          const scaledEv = [ev[0] * lam, ev[1] * lam, ev[2] * lam]
+          dynamicGroup.add(build3DVectorArrow(scaledEv, color, 0.022, 0.16, 0.06))
+        }
       })
     }
 
-    // 4. 3D VECTORS v, M(t)v, Av & POWER ORBIT
+    // 4. 3D ROW PLANES (a_i1 x + a_i2 y + a_i3 z = b_i) & SOLUTION INTERSECTION x*
+    if (layers.rowPlanes) {
+      const xStar = solution.xExact
+      const rowColors = [0xf59e0b, 0x06b6d4, 0xec4899]
+      for (let i = 0; i < 3; i++) {
+        const planeGrp = buildRowPlaneMesh(baseMatrix[i], bVector[i], rowColors[i], xStar)
+        dynamicGroup.add(planeGrp)
+      }
+
+      // Intersection sphere at x*
+      const solGeo = new THREE.SphereGeometry(0.11, 20, 20)
+      solGeo.translate(xStar[0], xStar[1], xStar[2])
+      const solMesh = new THREE.Mesh(
+        solGeo,
+        new THREE.MeshStandardMaterial({
+          color: 0x10b981,
+          emissive: 0x10b981,
+          emissiveIntensity: 0.6,
+        })
+      )
+      dynamicGroup.add(solMesh)
+    }
+
+    // 5. 3D COLUMN PICTURE: x_1*(Ae_1) + x_2*(Ae_2) + x_3*(Ae_3) = b
+    if (layers.colPicture) {
+      const xStar = solution.xExact
+      const c1 = applyMatrix(baseMatrix, [1, 0, 0])
+      const c2 = applyMatrix(baseMatrix, [0, 1, 0])
+      const c3 = applyMatrix(baseMatrix, [0, 0, 1])
+
+      const p1 = [c1[0] * xStar[0], c1[1] * xStar[0], c1[2] * xStar[0]]
+      const p2 = [
+        p1[0] + c2[0] * xStar[1],
+        p1[1] + c2[1] * xStar[1],
+        p1[2] + c2[2] * xStar[1],
+      ]
+      const p3 = [
+        p2[0] + c3[0] * xStar[2],
+        p2[1] + c3[1] * xStar[2],
+        p2[2] + c3[2] * xStar[2],
+      ]
+
+      dynamicGroup.add(
+        build3DVectorArrow(p1, 0x10b981, 0.024, 0.18, 0.065, [0, 0, 0]),
+        build3DVectorArrow(p2, 0xf59e0b, 0.024, 0.18, 0.065, p1),
+        build3DVectorArrow(p3, 0x818cf8, 0.024, 0.18, 0.065, p2),
+        build3DVectorArrow(bVector, 0xd946ef, 0.032, 0.22, 0.08, [0, 0, 0])
+      )
+    }
+
+    // 6. 3D ITERATIVE SOLVER TRAJECTORIES x^(0) -> x^(1) -> ... -> x^(k)
+    if (layers.iterativePaths) {
+      const methodList = Object.values(solution.iterative)
+      methodList.forEach((trace) => {
+        if (!enabledMethods[trace.id]) return
+        const maxIdx = Math.min(iterStep, trace.points.length - 1)
+        if (maxIdx < 0) return
+
+        const pts: THREE.Vector3[] = []
+        for (let k = 0; k <= maxIdx; k++) {
+          const pt = trace.points[k]
+          if (
+            !Number.isFinite(pt[0]) ||
+            !Number.isFinite(pt[1]) ||
+            !Number.isFinite(pt[2]) ||
+            Math.hypot(pt[0], pt[1], pt[2]) > 40
+          ) {
+            break
+          }
+          pts.push(new THREE.Vector3(pt[0], pt[1], pt[2]))
+        }
+
+        const color = ITER_COLORS_HEX[trace.id]
+        if (pts.length > 1) {
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(pts)
+          const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color }))
+          dynamicGroup.add(line)
+        }
+
+        pts.forEach((pt, idx) => {
+          const isHead = idx === pts.length - 1
+          const spGeo = new THREE.SphereGeometry(isHead ? 0.075 : 0.04, 14, 14)
+          spGeo.translate(pt.x, pt.y, pt.z)
+          const spMesh = new THREE.Mesh(
+            spGeo,
+            new THREE.MeshStandardMaterial({
+              color,
+              emissive: color,
+              emissiveIntensity: isHead ? 0.55 : 0.25,
+            })
+          )
+          dynamicGroup.add(spMesh)
+        })
+      })
+    }
+
+    // 7. 3D VECTORS v, M(t)v, Av & POWER ORBIT
     const currentMv = applyMatrix(activeMat, vector)
     const fullAv = applyMatrix(baseMatrix, vector)
 
@@ -392,7 +639,6 @@ export default function Canvas3D({
           })
         }
       } else {
-        // Smooth interpolation path from v to Av
         const curvePts: THREE.Vector3[] = []
         const steps = 24
         for (let i = 0; i <= steps; i++) {
@@ -417,7 +663,22 @@ export default function Canvas3D({
         dynamicGroup.add(pathLine)
       }
     }
-  }, [baseMatrix, interpolatedMatrix, t, vector, metrics, powerMode, powerK, normalizePower, layers])
+  }, [
+    baseMatrix,
+    interpolatedMatrix,
+    t,
+    vector,
+    bVector,
+    metrics,
+    lpMetrics,
+    solution,
+    iterStep,
+    enabledMethods,
+    powerMode,
+    powerK,
+    normalizePower,
+    layers,
+  ])
 
   const setCameraView = (pos: [number, number, number]) => {
     const eng = engineRef.current
@@ -496,11 +757,15 @@ export default function Canvas3D({
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
-            <span>|det(A)| = {formatNum(Math.abs(metrics.det), 2)}</span>
+            <span>
+              Vol |det(A)| = {formatNum(Math.abs(metrics.det), 2)} (Ref Cube Vol = 1)
+            </span>
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-400 inline-block" />
-            <span>3D SVD Ellipsoid</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-indigo-400 inline-block" />
+            <span>
+              ‖A‖_{lpMetrics.pLabel} = {formatNum(lpMetrics.matrixNormP, 2)}
+            </span>
           </span>
         </div>
         <div className="text-[11px] font-mono text-slate-400 bg-slate-900/75 backdrop-blur px-2.5 py-1 rounded-lg border border-slate-800/70 w-fit">
