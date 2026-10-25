@@ -328,6 +328,14 @@ jobs:
                 -H "Content-Type: application/json" \
                 -d '{"state":"closed","state_reason":"completed"}' > /dev/null || true
             fi
+            if [ -f ".github/workflows/deploy.yml" ]; then
+              echo "🚀 Avvio workflow deploy.yml su main..."
+              curl -s -X POST "$API/actions/workflows/deploy.yml/dispatches" \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Content-Type: application/json" \
+                -d '{"ref":"main"}' > /dev/null || true
+            fi
           fi
 
       - name: Salvataggio progressi su timeout o errore
