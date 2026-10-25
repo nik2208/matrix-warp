@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Metrics, Mode } from '../types/math'
-import { formatComplex, formatNum } from '../lib/mathEngine'
+import { formatComplex, formatNum, transposeMatrix } from '../lib/mathEngine'
 import ArgandWidget from './ArgandWidget'
 
 interface MetricsPanelProps {
@@ -33,7 +33,7 @@ function MiniMatrixView({ title, mat }: { title: string; mat: number[][] }) {
 export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsPanelProps) {
   const dim = mode === '2d' ? 2 : 3
   const maxSigma = Math.max(...metrics.singularValues, 1e-6)
-  const [decompTab, setDecompTab] = useState<'svd' | 'lu' | 'qr'>('svd')
+  const [decompTab, setDecompTab] = useState<'svd' | 'lu' | 'cholesky' | 'qr'>('svd')
 
   const stabilityStyles = {
     optimal: {
@@ -59,14 +59,50 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
   }[metrics.stability]
 
   const propBadges: { label: string; active: boolean; color: string }[] = [
-    { label: 'Symmetric (A=Aᵀ)', active: metrics.properties.isSymmetric, color: 'text-sky-300 border-sky-500/30 bg-sky-500/10' },
-    { label: 'Orthogonal (QᵀQ=I)', active: metrics.properties.isOrthogonal, color: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' },
-    { label: 'Positive Definite (SPD)', active: metrics.properties.isPositiveDefinite, color: 'text-teal-300 border-teal-500/30 bg-teal-500/10' },
-    { label: 'Normal (AAᵀ=AᵀA)', active: metrics.properties.isNormal, color: 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10' },
-    { label: 'Diag Dominant', active: metrics.properties.isStrictlyDiagonallyDominant, color: 'text-amber-300 border-amber-500/30 bg-amber-500/10' },
-    { label: 'Idempotent (A²=A)', active: metrics.properties.isIdempotent, color: 'text-purple-300 border-purple-500/30 bg-purple-500/10' },
-    { label: 'Involutory (A²=I)', active: metrics.properties.isInvolutory, color: 'text-pink-300 border-pink-500/30 bg-pink-500/10' },
+    {
+      label: 'Symmetric (A=Aᵀ)',
+      active: metrics.properties.isSymmetric,
+      color: 'text-sky-300 border-sky-500/30 bg-sky-500/10',
+    },
+    {
+      label: 'Positive Definite (SPD)',
+      active: metrics.properties.isPositiveDefinite,
+      color: 'text-teal-300 border-teal-500/30 bg-teal-500/10',
+    },
+    {
+      label: 'Diag Dominant',
+      active: metrics.properties.isStrictlyDiagonallyDominant,
+      color: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
+    },
+    {
+      label: 'Tridiagonal',
+      active: metrics.properties.isTridiagonal,
+      color: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
+    },
+    {
+      label: 'Orthogonal (QᵀQ=I)',
+      active: metrics.properties.isOrthogonal,
+      color: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
+    },
+    {
+      label: 'Normal (AAᵀ=AᵀA)',
+      active: metrics.properties.isNormal,
+      color: 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10',
+    },
+    {
+      label: 'Idempotent (A²=A)',
+      active: metrics.properties.isIdempotent,
+      color: 'text-purple-300 border-purple-500/30 bg-purple-500/10',
+    },
+    {
+      label: 'Involutory (A²=I)',
+      active: metrics.properties.isInvolutory,
+      color: 'text-pink-300 border-pink-500/30 bg-pink-500/10',
+    },
   ]
+
+  const pd = metrics.posDefinite
+  const dd = metrics.diagDominance
 
   return (
     <div className="space-y-4">
@@ -92,16 +128,98 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
           )}
         </div>
         <div className="flex flex-wrap gap-1.5 pt-0.5">
-          {propBadges
-            .filter((b) => b.active)
-            .map((b) => (
-              <span
-                key={b.label}
-                className={`text-[10px] font-mono px-2 py-0.5 rounded border ${b.color}`}
-              >
-                ✓ {b.label}
-              </span>
-            ))}
+          {propBadges.map((b) => (
+            <span
+              key={b.label}
+              className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                b.active
+                  ? b.color
+                  : 'text-slate-500 border-slate-800/80 bg-slate-950/60'
+              }`}
+            >
+              {b.active ? '✓' : '✗'} {b.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Explicit Pairings: (1) Positive Definiteness + Condition Number, (2) Diagonal Dominance + Spectral Radius */}
+      <div className="grid grid-cols-1 gap-2.5">
+        {/* Card 1: Positive Definiteness (SPD) + Conditioning kappa_2(A) */}
+        <div className="rounded-xl bg-slate-900/80 border border-teal-500/30 p-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-teal-300">
+              Definitezza Positiva (SPD) & Condizionamento κ₂(A)
+            </span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                pd.isSPD
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                  : pd.isPositiveDefiniteQuadratic
+                    ? 'bg-sky-500/15 text-sky-300 border-sky-500/40'
+                    : 'bg-rose-500/15 text-rose-300 border-rose-500/40'
+              }`}
+            >
+              {pd.isSPD
+                ? '✓ SPD (A=Aᵀ, λ_i > 0)'
+                : pd.isPositiveDefiniteQuadratic
+                  ? 'xᵀAx > 0 (Non-Sym)'
+                  : '✗ Non Definita Positiva'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span>
+              Sylvester:{' '}
+              {pd.leadingMinors.map((m, i) => `Δ_${i + 1}=${formatNum(m, 2)}`).join(', ')}
+            </span>
+            <span
+              className={`font-bold ${
+                metrics.singular
+                  ? 'text-rose-400'
+                  : metrics.cond > 50
+                    ? 'text-amber-400'
+                    : 'text-emerald-300'
+              }`}
+            >
+              κ₂(A) = {formatNum(metrics.cond, 3)}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Diagonal Dominance + Spectral Radius rho(A) */}
+        <div className="rounded-xl bg-slate-900/80 border border-amber-500/30 p-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-amber-300">
+              Dominanza Diagonale & Raggio Spettrale ρ(A)
+            </span>
+            <span
+              className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
+                dd.isStrictRow || dd.isStrictCol
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                  : dd.isWeakRow
+                    ? 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                    : 'bg-rose-500/15 text-rose-300 border-rose-500/40'
+              }`}
+            >
+              {dd.isStrictRow
+                ? '✓ Stretta (Righe)'
+                : dd.isStrictCol
+                  ? '✓ Stretta (Colonne)'
+                  : dd.isWeakRow
+                    ? '~ Debole (|a_ii| ≥ R_i)'
+                    : '✗ Non Dominante'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
+            <span>
+              {dd.rows
+                .map((r) => `R${r.row}: ${formatNum(r.diagAbs, 1)}${r.isStrict ? '>' : '≤'}${formatNum(r.offDiagSum, 1)}`)
+                .join(' | ')}
+            </span>
+            <span className="text-teal-300 font-bold">
+              ρ(A) = {formatNum(metrics.spectralRadius, 3)}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -253,16 +371,17 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         </div>
       </div>
 
-      {/* Decompositions Explorer: SVD, PA=LU, A=QR */}
+      {/* Decompositions Explorer: SVD, PA=LU, Cholesky LL^T, A=QR */}
       <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-200">Matrix Decompositions</span>
           <div className="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
             {(
               [
-                ['svd', 'SVD (UΣVᵀ)'],
-                ['lu', 'PA = LU'],
-                ['qr', 'A = QR'],
+                ['svd', 'SVD'],
+                ['lu', 'PA=LU'],
+                ['cholesky', 'LLᵀ'],
+                ['qr', 'A=QR'],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -311,9 +430,28 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         )}
 
         {decompTab === 'lu' && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-1.5">
+            <MiniMatrixView title="Perm P" mat={metrics.lu.P} />
             <MiniMatrixView title="Lower L" mat={metrics.lu.L} />
             <MiniMatrixView title="Upper U" mat={metrics.lu.U} />
+          </div>
+        )}
+
+        {decompTab === 'cholesky' && (
+          <div className="space-y-2">
+            {metrics.cholesky.isSPD && metrics.cholesky.L ? (
+              <div className="grid grid-cols-2 gap-2">
+                <MiniMatrixView title="Cholesky L" mat={metrics.cholesky.L} />
+                <MiniMatrixView
+                  title="Transpose Lᵀ"
+                  mat={transposeMatrix(metrics.cholesky.L)}
+                />
+              </div>
+            ) : (
+              <div className="text-[11px] font-mono text-amber-300 bg-slate-950/70 p-2.5 rounded border border-slate-800">
+                {metrics.cholesky.reason}
+              </div>
+            )}
           </div>
         )}
 

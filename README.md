@@ -52,13 +52,14 @@ It is designed for students, engineers, and researchers to geometrically see eve
   - In **3D**, renders the **3 translucent row planes** $a_{i1}x + a_{i2}y + a_{i3}z = b_i$ in 3D space and highlights their intersection point $x^*$.
 - **Column Picture**:
   - Renders the tip-to-tail linear combination of the columns $x_1(Ae_1) + x_2(Ae_2) (+ x_3 Ae_3) = b$.
-- **Direct Solvers**:
-  - Exact inverse solution $x^* = A^{-1}b$ (or Moore-Penrose pseudoinverse minimum-norm least-squares solution $x^+ = A^+ b$ when $A$ is singular).
-  - **Cramer's Rule**: Explicit determinants $\det(A_i)$ and ratios $x_i = \det(A_i)/\det(A)$.
-  - **$PA = LU$ Forward/Back Substitution**: Displays intermediate vector $y$ solving $Ly = Pb$ and final $Ux = y$.
+- **Direct Solvers (Gauss & Factorizations)**:
+  - **Gaussian Elimination & Pivoting**: Step-by-step augmented matrix reduction $[A^{(k)} | b^{(k)}]$ comparing **Naive Gauss ($A=LU$)**, **Partial Pivoting ($PA=LU$)**, and **Complete Pivoting ($P_c A Q_c = L_c U_c$)** with forward ($Ly = Pb$) and backward ($Ux = y$) substitutions.
+  - **Cholesky Factorization ($A = L L^T$ & $A = L_D D L_D^T$)**: Explicit Sylvester leading principal minors ($\Delta_1, \Delta_2, \Delta_3$) and SPD verification paired with condition number $\kappa_2(A)$.
+  - **Thomas Algorithm (TDMA)**: Exact $O(n)$ Tridiagonal Matrix Algorithm displaying bands $(a_i, d_i, c_i)$, forward sweep coefficients $(c'_i, d'_i)$, and back-substitution.
+  - **Cramer's Rule & Pseudoinverse**: Explicit determinants $\det(A_i)$, ratios $x_i = \det(A_i)/\det(A)$, and Moore-Penrose pseudoinverse $x^+ = A^+ b$ fallback for singular systems.
 - **Iterative Solvers & Trajectories**:
-  - Simultaneous simulation of **Jacobi**, **Gauss-Seidel**, **SOR (Successive Over-Relaxation)** with adjustable $\omega \in (0.1, 1.95)$, and **Conjugate Gradient (CG / Krylov CGNR)**.
-  - Computes the exact **iteration matrix spectral radius** $\rho(G)$ for each stationary method to explain why it converges ($\rho(G) < 1$) or diverges ($\rho(G) \ge 1$).
+  - Explicit **Diagonal Dominance** row-by-row check ($|a_{ii}| > \sum_{j \neq i} |a_{ij}|$) paired with **Spectral Radius** $\rho(A)$ and iteration matrix spectral radii $\rho(G_{\text{Jacobi}}), \rho(G_{\text{GS}}), \rho(G_{\text{SOR}})$.
+  - Simultaneous simulation of **Jacobi**, **Gauss-Seidel**, **SOR (Successive Over-Relaxation)** with adjustable $\omega \in (0.2, 1.95)$, and **Conjugate Gradient (CG / Krylov CGNR)**.
   - Animates the step-by-step trajectories $x^{(0)} \to x^{(1)} \to \dots \to x^{(k)}$ directly on the **2D Canvas** and in **3D WebGL space**, paired with a live $\log_{10} \|Ax^{(k)} - b\|_2$ residual convergence chart.
 
 ---

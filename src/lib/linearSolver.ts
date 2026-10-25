@@ -1,8 +1,12 @@
 import type {
+  CholeskySolveTrace,
+  GaussianEliminationTrace,
+  GaussianStep,
   IterativeMethodId,
   IterativeMethodTrace,
   LinearSystemSolution,
   Metrics,
+  ThomasAlgorithmTrace,
 } from '../types/math'
 import {
   applyMatrix,
@@ -10,6 +14,7 @@ import {
   computeDet,
   computeEigenvaluesOnly,
   dotVec,
+  formatNum,
   invertMatrix,
   multiplyMatrices,
   transposeMatrix,
@@ -28,6 +33,215 @@ function clampVec(v: number[], maxMag = 250): number[] {
   return v
 }
 
+function solveLowerUnit(L: number[][], rhs: number[]): number[] {
+  const n = L.length
+  const y = Array(n).fill(0)
+  for (let i = 0; i < n; i++) {
+    let s = rhs[i] ?? 0
+    for (let j = 0; j < i; j++) s -= L[i][j] * y[j]
+    y[i] = s
+  }
+  return y
+}
+
+function solveUpper(U: number[][], y: number[]): number[] {
+  const n = U.length
+  const x = Array(n).fill(0)
+  for (let i = n - 1; i >= 0; i--) {
+    let s = y[i] ?? 0
+    for (let j = i + 1; j < n; j++) s -= U[i][j] * x[j]
+    x[i] = Math.abs(U[i][i]) > 1e-12 ? s / U[i][i] : 0
+  }
+  return x
+}
+
+function buildGaussianTrace(
+  a: number[][],
+  b: number[],
+  metrics: Metrics
+): GaussianEliminationTrace {
+  const n = a.length
+  const A = cloneMatrix(a)
+  const B = [...b]
+  const steps: GaussianStep[] = [
+    {
+      stepIndex: 0,
+      description: 'Initial augmented system [A⁽⁰⁾ | b⁽⁰⁾]',
+      matrixA: cloneMatrix(A),
+      vectorB: [...B],
+    },
+  ]
+
+  let stepIdx = 1
+  for (let k = 0; k < n - 1; k++) {
+    let maxRow = k
+    let maxVal = Math.abs(A[k][k])
+    for (let r = k + 1; r < n; r++) {
+      if (Math.abs(A[r][k]) > maxVal) {
+        maxVal = Math.abs(A[r][k])
+        maxRow = r
+      }
+    }
+    if (maxRow !== k) {
+      ;[A[k], A[maxRow]] = [A[maxRow], A[k]]
+      ;[B[k], B[maxRow]] = [B[maxRow], B[k]]
+      steps.push({
+        stepIndex: stepIdx++,
+        description: `Partial Pivoting: swap R_${k + 1} ↔ R_${maxRow + 1} (|pivot| = ${formatNum(maxVal, 3)})`,
+        matrixA: cloneMatrix(A),
+        vectorB: [...B],
+      })
+    }
+
+    if (Math.abs(A[k][k]) > 1e-12) {
+      const elimOps: string[] = []
+      for (let i = k + 1; i < n; i++) {
+        const m = A[i][k] / A[k][k]
+        if (Math.abs(m) > 1e-12) {
+          elimOps.push(`R_${i + 1} ← R_${i + 1} − (${formatNum(m, 2)})R_${k + 1}`)
+        }
+        for (let j = k; j < n; j++) {
+          A[i][j] -= m * A[k][j]
+        }
+        B[i] -= m * B[k]
+      }
+      steps.push({
+        stepIndex: stepIdx++,
+        description:
+          elimOps.length > 0
+            ? `Eliminate col ${k + 1}: ${elimOps.join(', ')}`
+            : `Col ${k + 1} already zero below pivot`,
+        matrixA: cloneMatrix(A),
+        vectorB: [...B],
+      })
+    }
+  }
+
+  // Partial pivoting PA = LU forward & backward
+  const pb = applyMatrix(metrics.lu.P, b)
+  const forwardY = solveLowerUnit(metrics.lu.L, pb)
+  const backwardX = solveUpper(metrics.lu.U, forwardY)
+
+  // Naive Gauss without pivoting
+  let naiveY: number[] | null = null
+  let naiveX: number[] | null = null
+  if (!metrics.lu.naiveBreakdown && metrics.lu.naiveL && metrics.lu.naiveU) {
+    naiveY = solveLowerUnit(metrics.lu.naiveL, b)
+    naiveX = solveUpper(metrics.lu.naiveU, naiveY)
+  }
+
+  // Complete pivoting P_c A Q_c = L_c U_c => L_c y_c = P_c b, U_c z_c = y_c, x = Q_c z_c
+  const pcb = applyMatrix(metrics.lu.Pc, b)
+  const yc = solveLowerUnit(metrics.lu.Lc, pcb)
+  const zc = solveUpper(metrics.lu.Uc, yc)
+  const completeX = applyMatrix(metrics.lu.Qc, zc)
+
+  return {
+    steps,
+    forwardY,
+    backwardX,
+    naiveY,
+    naiveX,
+    completeX,
+  }
+}
+
+function buildCholeskySolve(b: number[], metrics: Metrics): CholeskySolveTrace {
+  const chol = metrics.cholesky
+  if (!chol.isSPD || !chol.L) {
+    return {
+      applicable: false,
+      reason: chol.reason,
+      forwardY: null,
+      backwardX: null,
+    }
+  }
+  const n = chol.L.length
+  const L = chol.L
+  // Forward substitution L y = b
+  const y = Array(n).fill(0)
+  for (let i = 0; i < n; i++) {
+    let s = b[i] ?? 0
+    for (let j = 0; j < i; j++) s -= L[i][j] * y[j]
+    y[i] = L[i][i] > 1e-12 ? s / L[i][i] : 0
+  }
+  // Backward substitution L^T x = y
+  const x = Array(n).fill(0)
+  for (let i = n - 1; i >= 0; i--) {
+    let s = y[i]
+    for (let j = i + 1; j < n; j++) s -= L[j][i] * x[j]
+    x[i] = L[i][i] > 1e-12 ? s / L[i][i] : 0
+  }
+  return {
+    applicable: true,
+    reason: chol.reason,
+    forwardY: y,
+    backwardX: x,
+  }
+}
+
+function buildThomasTrace(a: number[][], b: number[], isTridiagonal: boolean): ThomasAlgorithmTrace {
+  const n = a.length
+  const subDiagA: number[] = Array(n).fill(0)
+  const mainDiagD: number[] = Array(n).fill(0)
+  const superDiagC: number[] = Array(n).fill(0)
+
+  for (let i = 0; i < n; i++) {
+    mainDiagD[i] = a[i][i]
+    if (i > 0) subDiagA[i] = a[i][i - 1]
+    if (i < n - 1) superDiagC[i] = a[i][i + 1]
+  }
+
+  // Forward sweep O(n): compute c'_i and d'_i
+  const cPrime: number[] = Array(n).fill(0)
+  const dPrime: number[] = Array(n).fill(0)
+  let zeroPivot = false
+
+  if (Math.abs(mainDiagD[0]) < 1e-11) {
+    zeroPivot = true
+  } else {
+    cPrime[0] = n > 1 ? superDiagC[0] / mainDiagD[0] : 0
+    dPrime[0] = (b[0] ?? 0) / mainDiagD[0]
+  }
+
+  for (let i = 1; i < n && !zeroPivot; i++) {
+    const denom = mainDiagD[i] - subDiagA[i] * cPrime[i - 1]
+    if (Math.abs(denom) < 1e-11) {
+      zeroPivot = true
+      break
+    }
+    cPrime[i] = i < n - 1 ? superDiagC[i] / denom : 0
+    dPrime[i] = ((b[i] ?? 0) - subDiagA[i] * dPrime[i - 1]) / denom
+  }
+
+  // Back substitution: x_{n-1} = d'_{n-1}, x_i = d'_i - c'_i x_{i+1}
+  const xThomas: number[] = Array(n).fill(0)
+  if (!zeroPivot) {
+    xThomas[n - 1] = dPrime[n - 1]
+    for (let i = n - 2; i >= 0; i--) {
+      xThomas[i] = dPrime[i] - cPrime[i] * xThomas[i + 1]
+    }
+  }
+
+  let reason = 'Exact O(n) Tridiagonal Matrix Algorithm (TDMA)'
+  if (!isTridiagonal) {
+    reason = 'Non-tridiagonal entries (a₁₃ or a₃₁ ≠ 0): TDMA ignores corner entries outside the 3 diagonals'
+  } else if (zeroPivot) {
+    reason = 'Zero pivot encountered during Thomas forward sweep'
+  }
+
+  return {
+    isTridiagonal: isTridiagonal && !zeroPivot,
+    reason,
+    subDiagA,
+    mainDiagD,
+    superDiagC,
+    cPrime,
+    dPrime,
+    xThomas,
+  }
+}
+
 function runStationarySplitting(
   id: IterativeMethodId,
   name: string,
@@ -37,9 +251,8 @@ function runStationarySplitting(
   x0: number[],
   maxSteps: number,
   omega = 1
-): IterativeMethodTrace {
+ ): IterativeMethodTrace {
   const n = a.length
-  // Check zero diagonal entries
   const hasZeroDiag = a.some((row, i) => Math.abs(row[i]) < 1e-10)
   if (hasZeroDiag) {
     return {
@@ -54,17 +267,14 @@ function runStationarySplitting(
     }
   }
 
-  // Build iteration matrix G to compute exact spectral radius rho(G)
   let G: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
   if (id === 'jacobi') {
-    // G_J = -D^{-1}(L + U)
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < n; j++) {
         G[i][j] = i === j ? 0 : -a[i][j] / a[i][i]
       }
     }
   } else {
-    // Gauss-Seidel (omega=1) or SOR: (D + omega L) x^{k+1} = ((1-omega)D - omega U) x^k + omega b
     const M = Array.from({ length: n }, (_, i) =>
       Array.from({ length: n }, (__, j) => {
         if (i === j) return a[i][i]
@@ -104,7 +314,6 @@ function runStationarySplitting(
         next[i] = (b[i] - sigma) / a[i][i]
       }
     } else {
-      // Gauss-Seidel / SOR uses updated components immediately
       for (let i = 0; i < n; i++) {
         let sigma = 0
         for (let j = 0; j < i; j++) sigma += a[i][j] * next[j]
@@ -133,10 +342,6 @@ function runStationarySplitting(
   }
 }
 
-/**
- * Conjugate Gradient (on Normal Equations A^T A x = A^T b for general non-symmetric matrices,
- * or standard CG when A is SPD) so it converges monotonically in <= n steps!
- */
 function runConjugateGradient(
   a: number[][],
   b: number[],
@@ -218,14 +423,9 @@ export function solveLinearSystem(
     cramerDets.push(computeDet(ai))
   }
 
-  // Forward substitution L y = P b
-  const pb = applyMatrix(metrics.lu.P, b)
-  const luForwardY: number[] = Array(n).fill(0)
-  for (let i = 0; i < n; i++) {
-    let s = pb[i]
-    for (let j = 0; j < i; j++) s -= metrics.lu.L[i][j] * luForwardY[j]
-    luForwardY[i] = s
-  }
+  const gauss = buildGaussianTrace(a, b, metrics)
+  const choleskySolve = buildCholeskySolve(b, metrics)
+  const thomas = buildThomasTrace(a, b, metrics.properties.isTridiagonal)
 
   const jacobi = runStationarySplitting('jacobi', 'Jacobi', '#38bdf8', a, b, x0, maxSteps, 1)
   const gs = runStationarySplitting(
@@ -256,7 +456,10 @@ export function solveLinearSystem(
     isExact,
     residualNorm: resNorm,
     cramerDets,
-    luForwardY,
+    luForwardY: gauss.forwardY,
+    gauss,
+    choleskySolve,
+    thomas,
     iterative: {
       jacobi,
       'gauss-seidel': gs,

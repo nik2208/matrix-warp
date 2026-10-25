@@ -1,11 +1,14 @@
 import type {
+  CholeskyDecomposition,
   Complex,
+  DiagonalDominanceInfo,
   EigenPair,
   GershgorinDisc,
   LUDecomposition,
   LpMetrics,
   MatrixProperties,
   Metrics,
+  PositiveDefiniteInfo,
   QRDecomposition,
   SVDResult,
   StabilityLevel,
@@ -349,6 +352,8 @@ export function computePseudoinverse(svd: SVDResult): number[][] {
 
 export function computeLU(a: number[][]): LUDecomposition {
   const n = a.length as 2 | 3
+
+  // 1. Partial Pivoting: P A = L U
   const U = cloneMatrix(a)
   const L = identityMatrix(n)
   const P = identityMatrix(n)
@@ -381,7 +386,150 @@ export function computeLU(a: number[][]): LUDecomposition {
       }
     }
   }
-  return { P, L, U, swaps }
+
+  // 2. Naive Gaussian Elimination (No Pivoting): A = L_naive U_naive
+  const naiveU = cloneMatrix(a)
+  const naiveL = identityMatrix(n)
+  let naiveBreakdown = false
+  for (let k = 0; k < n; k++) {
+    if (Math.abs(naiveU[k][k]) < 1e-10) {
+      naiveBreakdown = true
+      break
+    }
+    for (let i = k + 1; i < n; i++) {
+      const factor = naiveU[i][k] / naiveU[k][k]
+      naiveL[i][k] = factor
+      for (let j = k; j < n; j++) {
+        naiveU[i][j] -= factor * naiveU[k][j]
+      }
+    }
+  }
+
+  // 3. Complete Pivoting: P_c A Q_c = L_c U_c
+  const Uc = cloneMatrix(a)
+  const Lc = identityMatrix(n)
+  const Pc = identityMatrix(n)
+  const Qc = identityMatrix(n)
+  for (let k = 0; k < n; k++) {
+    let maxR = k
+    let maxC = k
+    let maxV = Math.abs(Uc[k][k])
+    for (let r = k; r < n; r++) {
+      for (let c = k; c < n; c++) {
+        if (Math.abs(Uc[r][c]) > maxV) {
+          maxV = Math.abs(Uc[r][c])
+          maxR = r
+          maxC = c
+        }
+      }
+    }
+    if (maxR !== k) {
+      ;[Uc[k], Uc[maxR]] = [Uc[maxR], Uc[k]]
+      ;[Pc[k], Pc[maxR]] = [Pc[maxR], Pc[k]]
+      for (let j = 0; j < k; j++) {
+        ;[Lc[k][j], Lc[maxR][j]] = [Lc[maxR][j], Lc[k][j]]
+      }
+    }
+    if (maxC !== k) {
+      for (let r = 0; r < n; r++) {
+        ;[Uc[r][k], Uc[r][maxC]] = [Uc[r][maxC], Uc[r][k]]
+        ;[Qc[r][k], Qc[r][maxC]] = [Qc[r][maxC], Qc[r][k]]
+      }
+    }
+    if (Math.abs(Uc[k][k]) > 1e-12) {
+      for (let i = k + 1; i < n; i++) {
+        const factor = Uc[i][k] / Uc[k][k]
+        Lc[i][k] = factor
+        for (let j = k; j < n; j++) {
+          Uc[i][j] -= factor * Uc[k][j]
+        }
+      }
+    }
+  }
+
+  return {
+    P,
+    L,
+    U,
+    swaps,
+    naiveL: naiveBreakdown ? null : naiveL,
+    naiveU: naiveBreakdown ? null : naiveU,
+    naiveBreakdown,
+    Pc,
+    Qc,
+    Lc,
+    Uc,
+  }
+}
+
+export function computeCholesky(a: number[][], isSymmetric: boolean): CholeskyDecomposition {
+  const n = a.length as 2 | 3
+  if (!isSymmetric) {
+    return {
+      isSPD: false,
+      L: null,
+      LD: null,
+      D: null,
+      reason: 'A ≠ Aᵀ (Cholesky requires a Symmetric Positive Definite matrix)',
+    }
+  }
+
+  // LDL^T factorization (for symmetric matrices without square roots)
+  const LD = identityMatrix(n)
+  const D: number[] = Array(n).fill(0)
+  let ldOk = true
+  for (let j = 0; j < n; j++) {
+    let dj = a[j][j]
+    for (let k = 0; k < j; k++) {
+      dj -= LD[j][k] * LD[j][k] * D[k]
+    }
+    D[j] = dj
+    if (Math.abs(dj) < 1e-11) {
+      ldOk = false
+      break
+    }
+    for (let i = j + 1; i < n; i++) {
+      let s = a[i][j]
+      for (let k = 0; k < j; k++) {
+        s -= LD[i][k] * LD[j][k] * D[k]
+      }
+      LD[i][j] = s / dj
+    }
+  }
+
+  // Standard Cholesky A = L L^T
+  const L: number[][] = Array.from({ length: n }, () => Array(n).fill(0))
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j <= i; j++) {
+      let sum = 0
+      for (let k = 0; k < j; k++) {
+        sum += L[i][k] * L[j][k]
+      }
+      if (i === j) {
+        const diag = a[i][i] - sum
+        if (diag <= 1e-10) {
+          return {
+            isSPD: false,
+            L: null,
+            LD: ldOk ? LD : null,
+            D: ldOk ? D : null,
+            reason: `Not Positive Definite: pivot i=${i + 1} has a_${i + 1}${i + 1} - ∑ L² ≤ 0 (${formatNum(diag, 3)})`,
+          }
+        }
+        L[i][j] = Math.sqrt(diag)
+      } else {
+        L[i][j] = (a[i][j] - sum) / L[j][j]
+      }
+    }
+  }
+
+  return {
+    isSPD: true,
+    L,
+    LD: ldOk ? LD : null,
+    D: ldOk ? D : null,
+    reason: 'SPD Matrix: exact A = L Lᵀ and A = L_D D L_Dᵀ factorizations',
+  }
 }
 
 export function computeQR(a: number[][]): QRDecomposition {
@@ -597,6 +745,85 @@ function formatCharacteristicPoly(a: number[][]): string {
   return `λ³${term(-c2, 'λ²')}${term(c1, 'λ')}${term(-c0, '')} = 0`
 }
 
+function computeDiagonalDominance(a: number[][]): DiagonalDominanceInfo {
+  const n = a.length
+  const rows = a.map((row, i) => {
+    const diagAbs = Math.abs(row[i])
+    let offDiagSum = 0
+    for (let j = 0; j < n; j++) {
+      if (i !== j) offDiagSum += Math.abs(row[j])
+    }
+    const margin = diagAbs - offDiagSum
+    const isStrict = margin > 1e-9
+    const isWeak = margin >= -1e-9
+    return {
+      row: i + 1,
+      diagAbs,
+      offDiagSum,
+      margin,
+      isStrict,
+      isWeak,
+    }
+  })
+
+  const isStrictRow = rows.every((r) => r.isStrict)
+  const isWeakRow = rows.every((r) => r.isWeak) && rows.some((r) => r.diagAbs > 1e-9)
+
+  let isStrictCol = true
+  let isWeakCol = true
+  for (let j = 0; j < n; j++) {
+    const diagAbs = Math.abs(a[j][j])
+    let offCol = 0
+    for (let i = 0; i < n; i++) {
+      if (i !== j) offCol += Math.abs(a[i][j])
+    }
+    if (diagAbs <= offCol + 1e-9) isStrictCol = false
+    if (diagAbs < offCol - 1e-9) isWeakCol = false
+  }
+
+  return {
+    isStrictRow,
+    isWeakRow,
+    isStrictCol,
+    isWeakCol,
+    rows,
+  }
+}
+
+function computePositiveDefiniteInfo(
+  a: number[][],
+  isSymmetric: boolean,
+  eigenPairs: EigenPair[]
+): PositiveDefiniteInfo {
+  const n = a.length
+  const delta1 = a[0][0]
+  const delta2 = a[0][0] * a[1][1] - a[0][1] * a[1][0]
+  const leadingMinors = n === 2 ? [delta1, delta2] : [delta1, delta2, det3(a)]
+  const sylvesterPositive = leadingMinors.every((m) => m > 1e-8)
+
+  // Symmetric part S = (A + A^T) / 2 for general quadratic form x^T A x > 0
+  const symPart: number[][] = Array.from({ length: n }, (_, i) =>
+    Array.from({ length: n }, (__, j) => 0.5 * (a[i][j] + a[j][i]))
+  )
+  const symDelta1 = symPart[0][0]
+  const symDelta2 = symPart[0][0] * symPart[1][1] - symPart[0][1] * symPart[1][0]
+  const symMinors = n === 2 ? [symDelta1, symDelta2] : [symDelta1, symDelta2, det3(symPart)]
+  const isPositiveDefiniteQuadratic = symMinors.every((m) => m > 1e-8)
+
+  const isSPD =
+    isSymmetric &&
+    sylvesterPositive &&
+    eigenPairs.every((p) => p.isReal && p.value.re > 1e-6)
+
+  return {
+    isSymmetric,
+    leadingMinors,
+    sylvesterPositive,
+    isPositiveDefiniteQuadratic,
+    isSPD,
+  }
+}
+
 function analyzeMatrixProperties(a: number[][], eigenPairs: EigenPair[]): MatrixProperties {
   const n = a.length
   const tol = 1e-6
@@ -638,6 +865,16 @@ function analyzeMatrixProperties(a: number[][], eigenPairs: EigenPair[]): Matrix
     if (diag <= off + 1e-9) isStrictlyDiagonallyDominant = false
   }
 
+  // Tridiagonal: a_ij = 0 for |i - j| > 1
+  let isTridiagonal = true
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (Math.abs(i - j) > 1 && Math.abs(a[i][j]) > 1e-8) {
+        isTridiagonal = false
+      }
+    }
+  }
+
   // Idempotent: A^2 = A; Involutory: A^2 = I
   const a2 = multiplyMatrices(a, a)
   let isIdempotent = true
@@ -655,6 +892,7 @@ function analyzeMatrixProperties(a: number[][], eigenPairs: EigenPair[]): Matrix
     isNormal,
     isPositiveDefinite,
     isStrictlyDiagonallyDominant,
+    isTridiagonal,
     isIdempotent,
     isInvolutory,
   }
@@ -739,7 +977,10 @@ export function computeMetrics(a: number[][]): Metrics {
   }))
 
   const properties = analyzeMatrixProperties(a, eigenPairs)
+  const diagDominance = computeDiagonalDominance(a)
+  const posDefinite = computePositiveDefiniteInfo(a, properties.isSymmetric, eigenPairs)
   const lu = computeLU(a)
+  const cholesky = computeCholesky(a, properties.isSymmetric)
   const qr = computeQR(a)
 
   const colspaceBasis: number[][] = []
@@ -776,8 +1017,11 @@ export function computeMetrics(a: number[][]): Metrics {
     inverse,
     pseudoinverse,
     gershgorin,
+    diagDominance,
+    posDefinite,
     properties,
     lu,
+    cholesky,
     qr,
     nullspaceBasis,
     colspaceBasis,

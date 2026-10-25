@@ -323,6 +323,7 @@ export default function Sidebar({
             <LinearSystemPanel
               mode={mode}
               matrix={currentMatrix}
+              onMatrixChange={handleMatrixUpdate}
               b={currentB}
               onBChange={handleBUpdate}
               solution={solution}
