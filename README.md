@@ -118,3 +118,41 @@ For reporting security vulnerabilities in this template, see [SECURITY.md](SECUR
 ## 📄 License
 
 This template is licensed under the [MIT License](LICENSE).
+echo "---done---"
+ls templates/workflows/ && echo "---" && tail -30 README.md
+
+
+## Interactive Linear Transformation Visualizer
+
+This is a zero-backend, client-side single-page app for visualizing 2x2 and 3x3 linear transformations. Built with Vite + TypeScript + React + Tailwind + Three.js + mathjs.
+
+### Features
+- Toggle between 2D (2x2) and 3D (3x3)
+- Matrix input with presets: Identity, Rotation, Scaling, Shear, Reflection, Projection, Singular, Ill-conditioned
+- Test vector input with visualization of v and Av
+- Interpolation M(t) = (1-t)I + tA (slider t in [0,1])
+- Power iteration mode v_k = A^k v (play/pause/reset/step)
+- Metrics: det, trace, rank, Frobenius norm, spectral norm (σ_max), condition number κ = σ_max/σ_min (∞ if singular), eigenvalues/eigenvectors (real/imaginary), singular values
+- 2D: original/deformed grid, unit circle → ellipse with semi-axes σ1,σ2, highlighted real eigenvector lines, blue/red vectors, trajectory/orbit
+- 3D: axes, unit cube → parallelepiped (|det|), unit sphere → ellipsoid with axes σi, test vectors and trajectory, OrbitControls
+- Robust handling for singular/ill-conditioned matrices and complex eigenvalues
+- No CDN dependencies; all assets bundled
+
+### Development
+```bash
+npm ci
+npm run dev
+npm run typecheck
+npm run build
+npm run preview
+```
+
+### Deploy to GitHub Pages
+1. Build with `base: './'` configured in `vite.config.ts` (already set). Output goes to `dist/`.
+2. Use GitHub Actions with "GitHub Actions" as Pages source, or deploy `dist/` to `gh-pages` branch.
+3. See example workflow template at [`templates/workflows/deploy.yml`](templates/workflows/deploy.yml). **Do not** place workflows in `.github/workflows/` - save them as templates and follow the instructions above.
+
+### Notes
+- For complex eigenvalues (e.g. rotation), directional eigenlines are not rendered.
+- Condition number shown as ∞ for singular matrices.
+- Rendering uses `requestAnimationFrame` for smooth updates.
