@@ -1,48 +1,33 @@
-# Root .gitignore for Autonomous Template Projects
+# Dependencies
+node_modules/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Operating System files
-.DS_Store
-Thumbs.db
-*.swp
-*~
+# Build
+dist/
+build/
+out/
 
-# IDE and Editor configurations
+# Editor
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
-*.sublime-project
-*.sublime-workspace
+*.swp
+*~
 
-# Build artifacts and caches
-dist/
-build/
-out/
-target/
-*.log
+# OS
+.DS_Store
+Thumbs.db
 
-# Node / JS / TS
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-venv/
-.venv/
-env/
-
-# Dart / Flutter
-.dart_tool/
-.packages
-
-# Secrets and environment files
+# Env
 .env
 .env.local
 .env.*.local
 *.pem
 *.key
+
+# Logs
+*.log
