@@ -1,6 +1,13 @@
 {
-  "name": "interactive-linear-transformation-visualizer",
-  "version": "0.1.0",
+  "name": "matrix-warp",
+  "version": "1.0.0",
+  "description": "Interactive 2D & 3D Linear Operator, Spectral Analysis, Minkowski Lp Norm, and Ax=b Direct/Iterative Solver Visualizer.",
+  "homepage": "https://nik2208.github.io/matrix-warp/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nik2208/matrix-warp.git"
+  },
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {

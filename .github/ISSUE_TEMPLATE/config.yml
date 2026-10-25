@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security Vulnerability Reporting
-    url: https://github.com/vibe-maribit/autonomous-project-template/security/policy
+    url: https://github.com/nik2208/matrix-warp/security/policy
     about: Report security issues privately through our security policy.
+  - name: Live Application (GitHub Pages)
+    url: https://nik2208.github.io/matrix-warp/
+    about: Open the interactive Matrix Warp web application.

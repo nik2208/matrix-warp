@@ -1,158 +1,135 @@
-# Autonomous Project Template 🤖⚡
+# Matrix Warp — Interactive Linear Operator, Spectral & $Ax=b$ Studio 🧮✨
 
-[![Template Status](https://img.shields.io/badge/GitHub-Template%20Repository-blue.svg)](https://github.com/vibe-maribit/autonomous-project-template)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![OpenCode Version](https://img.shields.io/badge/OpenCode-2.x-purple.svg)](https://opencode.ai)
-[![CI Compatibility](https://img.shields.io/badge/CI-GitHub%20%7C%20Gitea%20%7C%20GitLab-orange.svg)](#cross-platform-support)
+[![Live Demo - GitHub Pages](https://img.shields.io/badge/Live_Demo-GitHub_Pages-0ea5e9?style=for-the-badge&logo=github)](https://nik2208.github.io/matrix-warp/)
+[![Deploy to GitHub Pages](https://github.com/nik2208/matrix-warp/actions/workflows/deploy.yml/badge.svg)](https://github.com/nik2208/matrix-warp/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React + Three.js](https://img.shields.io/badge/React_18-Three.js_WebGL-61dafb.svg?logo=react)](https://threejs.org/)
 
-A universal, cross-platform starter template designed for **autonomous, AI-driven software development** powered by [OpenCode](https://opencode.ai).
+> **🌐 Live Application:** **[https://nik2208.github.io/matrix-warp/](https://nik2208.github.io/matrix-warp/)**
 
-When issues or feature requests are opened, OpenCode autonomously analyzes requirements (including screenshots/mockups), crafts an implementation plan, develops code with test coverage, performs an automated code review, creates pull requests, and merges them.
+**Matrix Warp** is an interactive, zero-backend 2D (`2×2`) and 3D (`3×3`) Linear Algebra, Spectral Analysis, Minkowski $L_p$ Norm, and $Ax = b$ Numerical Solver visualizer built with **React**, **TypeScript**, **Three.js**, and **Tailwind CSS**.
 
----
-
-## 🌟 Key Features
-
-- **Multi-Platform CI Orchestration**: Native workflows for:
-  - **GitHub Actions** (`.github/workflows/opencode.yml`)
-  - **Gitea / Forgejo Actions** (`.gitea/workflows/opencode.yaml`)
-  - **GitLab CI** (`.gitlab-ci.yml`)
-- **4-Stage Autonomous Pipeline**:
-  1. 👁️ **Visual Inspection**: Detects images in issues/comments and processes UI mockups using visual models (`opencode/space-bunny-free` fallback).
-  2. 📝 **Deterministic Planning**: Read-only planner agent writes a detailed plan (`.opencode/plan.md`) and commits it.
-  3. 💻 **Implementation**: Coding agent builds the solution following the plan and executes automated tests.
-  4. 🧐 **Independent Code Review**: Read-only reviewer agent (`.opencode/agents/reviewer.md`) validates security, test coverage, and code hygiene before merge.
-- **Configurable Models & Privacy Fallback**:
-  - Per-run model override via `inputs.model` / `OPENCODE_MODEL`.
-  - Default fallback: `opencode/big-pickle` (or custom provider).
-  - Visual fallback: `opencode/space-bunny-free` (conditional on image detection).
-  - Optional `OPENCODE_API_KEY` for paid, privacy-compliant subscriptions (falls back seamlessly to free tiers when omitted).
-- **Graceful Timeout Checkpoint (360 min)**:
-  - Workflow max timeout configured to 360 minutes (6 hours).
-  - Safety checkpointing pushes work-in-progress code and comments on the issue if a timeout or cancellation is imminent.
-- **Full Best-Practice Compliance**:
-  - `LICENSE` (MIT)
-  - `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1)
-  - `CONTRIBUTING.md`
-  - `SECURITY.md`
-  - GitHub Issue Templates (Bug Report & Feature Request YAMLs)
-  - Pull Request Template
-  - Standard Labels configuration (`scripts/setup-labels.sh`)
+It is designed for students, engineers, and researchers to geometrically see every fundamental property of a matrix $A$ in real time.
 
 ---
 
-## 🚀 How to Use This Template
+## 🎯 Core Features
 
-### 1. Create a Repository from this Template
-Click the green **"Use this template"** button on GitHub, or clone this repository:
-```bash
-gh repo create my-awesome-project --template vibe-maribit/autonomous-project-template
-```
+### 1. Geometric Operator & Determinant ($2\text{D} \text{ & } 3\text{D}$)
+- **2D Canvas & 3D WebGL Scene**: Switch seamlessly between $2\times 2$ planar transformations and $3\times 3$ spatial transformations with interactive camera presets (`Iso 3D`, `XY`, `XZ`, `YZ`, and `Auto-Orbit`).
+- **Explicit Determinant Visualization**:
+  - **2D**: Reference unit square $[0,1]^2$ ($\text{Area} = 1$) overlaid with the transformed parallelogram ($\text{Area} = |\det(A)|$) and an orientation arc from $Ae_1 \to Ae_2$ highlighting orientation preservation ($\det(A) > 0$), reflection ($\det(A) < 0$), or singular collapse ($\det(A) = 0$).
+  - **3D**: Reference unit cube $[0,1]^3$ ($\text{Vol} = 1$) vs transformed 3D parallelepiped ($\text{Vol} = |\det(A)|$) spanned by columns $Ae_1, Ae_2, Ae_3$.
+- **Direct Manipulation**: Drag the test vector $v$, target vector $b$, or matrix column handles $Ae_1, Ae_2$ directly on the 2D canvas.
+- **Continuous Homotopy & Power Iteration**:
+  - **Continuous Morph**: Animate $M(t) = (1-t)I + tA$ for $t \in [0, 1]$ to watch space deform continuously from the identity to $A$.
+  - **Discrete Power Orbit**: Step through $v_k = A^k v$ (with optional unit normalization) to observe convergence toward the dominant eigenvector.
 
-### 2. Configure Secrets (Optional)
-If you require paid model access or private API subscriptions, configure your repository secrets:
-- `OPENCODE_API_KEY`: *(Optional)* Your OpenCode subscription key for privacy-compliant paid models.
-- `GH_PAT` / `GITHUB_TOKEN`: Standard repository token with read/write permissions for issues and pull requests.
+### 2. Continuous Minkowski $L_p$ Norm Explorer ($p \in [1, \infty]$)
+- **Interactive $p$-Slider**: Sweep continuously from $L_1$ (Manhattan diamond/octahedron) through $L_2$ (Euclidean circle/sphere) up to $L_\infty$ (Chebyshev square/cube).
+- **Vector & Induced Matrix Norms**:
+  - Real-time computation of $\|v\|_p$, $\|Av\|_p$, magnification ratio $\|Av\|_p / \|v\|_p$, and right-hand side norm $\|b\|_p$.
+  - **Induced Matrix Norm** $\|A\|_p = \max_{\|x\|_p = 1} \|Ax\|_p$, inverse norm $\|A^{-1}\|_p$, and **Generalized Condition Number** $\kappa_p(A) = \|A\|_p \|A^{-1}\|_p$.
+- **2D & 3D $L_p$ Ball Rendering**: Renders both the unit $L_p$-ball $\{x : \|x\|_p = 1\}$ and its transformed image $\{Ax : \|x\|_p = 1\}$, highlighting the maximizer vector $x_{\max}$ where $\|Ax_{\max}\|_p = \|A\|_p$.
 
-### 3. Setup Standard Labels
-Run the helper script to create the necessary status and workflow labels:
-```bash
-./scripts/setup-labels.sh owner/my-awesome-project
-```
+### 3. Spectral Analysis, Argand Plane & Matrix Decompositions
+- **Eigenvalues & Eigenvectors**:
+  - Exact analytical formulas in 2D and QR shifts + inverse iteration in 3D.
+  - Draws invariant eigenspace lines/axes, unit eigenvectors $e_i$, scaled vectors $\lambda_i e_i$, and the **Spectral Radius circle** $|\lambda| = \rho(A) = \max_i |\lambda_i|$.
+- **Complex Argand Plane & Gershgorin Discs**:
+  - Plots $\lambda_i \in \mathbb{C}$ against the unit stability circle $|\lambda| = 1$, spectral radius $|\lambda| = \rho(A)$, and **Gershgorin circles** $D(a_{ii}, R_i)$ where $R_i = \sum_{j \neq i} |a_{ij}|$.
+- **Characteristic Polynomial & Structural Classification**:
+  - Displays $p(\lambda) = \det(\lambda I - A)$, rank, nullity, trace, and automatic structural badges (*Symmetric*, *Orthogonal*, *Normal*, *Positive Definite SPD*, *Diagonally Dominant*, *Idempotent*, *Involutory*).
+- **Full Matrix Decompositions**:
+  - **SVD ($A = U \Sigma V^T$)**: Singular values $\sigma_i$, principal stretching axes $\sigma_i u_i$, and condition number $\kappa_2(A) = \sigma_{\max}/\sigma_{\min}$.
+  - **$PA = LU$**: Partial-pivoting LU factorization with permutation matrix $P$, unit lower-triangular $L$, and upper-triangular $U$.
+  - **$A = QR$**: Gram-Schmidt orthogonal-triangular factorization.
 
-### 4. Trigger Autonomous Development
-- **Via Issue Label**: Apply the `autonomous` label to any issue.
-- **Via Comment**: Comment `/oc please implement this feature` on any issue.
-- **Via Manual Dispatch**: Run the workflow manually from the Actions tab with optional model overrides.
+### 4. Linear System $Ax = b$ Studio (Direct & Iterative Solvers)
+- **Row Picture (Intersecting Lines & 3D Planes)**:
+  - In **2D**, draws the row lines $a_{i1}x + a_{i2}y = b_i$ intersecting at the solution $x^*$.
+  - In **3D**, renders the **3 translucent row planes** $a_{i1}x + a_{i2}y + a_{i3}z = b_i$ in 3D space and highlights their intersection point $x^*$.
+- **Column Picture**:
+  - Renders the tip-to-tail linear combination of the columns $x_1(Ae_1) + x_2(Ae_2) (+ x_3 Ae_3) = b$.
+- **Direct Solvers**:
+  - Exact inverse solution $x^* = A^{-1}b$ (or Moore-Penrose pseudoinverse minimum-norm least-squares solution $x^+ = A^+ b$ when $A$ is singular).
+  - **Cramer's Rule**: Explicit determinants $\det(A_i)$ and ratios $x_i = \det(A_i)/\det(A)$.
+  - **$PA = LU$ Forward/Back Substitution**: Displays intermediate vector $y$ solving $Ly = Pb$ and final $Ux = y$.
+- **Iterative Solvers & Trajectories**:
+  - Simultaneous simulation of **Jacobi**, **Gauss-Seidel**, **SOR (Successive Over-Relaxation)** with adjustable $\omega \in (0.1, 1.95)$, and **Conjugate Gradient (CG / Krylov CGNR)**.
+  - Computes the exact **iteration matrix spectral radius** $\rho(G)$ for each stationary method to explain why it converges ($\rho(G) < 1$) or diverges ($\rho(G) \ge 1$).
+  - Animates the step-by-step trajectories $x^{(0)} \to x^{(1)} \to \dots \to x^{(k)}$ directly on the **2D Canvas** and in **3D WebGL space**, paired with a live $\log_{10} \|Ax^{(k)} - b\|_2$ residual convergence chart.
 
 ---
 
-## 🏗️ Architecture
+## 🛠️ Tech Stack & Architecture
 
-```
-autonomous-project-template/
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   │   ├── bug_report.yml
-│   │   ├── feature_request.yml
-│   │   └── config.yml
-│   ├── workflows/
-│   │   └── opencode.yml        # GitHub Actions orchestrator
-│   ├── labels.yml              # Standard label schema
-│   └── pull_request_template.md
-├── .gitea/
-│   └── workflows/
-│       └── opencode.yaml       # Gitea / Forgejo Actions
-├── .gitlab-ci.yml              # GitLab CI pipeline
-├── .opencode/
-│   ├── agents/
-│   │   ├── planner.md          # Read-only planning agent
-│   │   └── reviewer.md         # Read-only code reviewer agent
-│   └── ci/
-│       └── runner.sh           # Portable pipeline execution script
-├── scripts/
-│   └── setup-labels.sh         # Label bootstrap script
-├── src/                        # Your application source code
-├── CONTRIBUTING.md
-├── CODE_OF_CONDUCT.md
-├── LICENSE
-├── SECURITY.md
+- **Frontend Framework**: React 18 + TypeScript 5.6 + Vite 5
+- **2D Rendering**: High-DPI HTML5 Canvas (`requestAnimationFrame`)
+- **3D Rendering**: Three.js WebGL (`OrbitControls`, custom vector arrows, translucent row planes, $L_p$ mesh projection)
+- **Styling**: Tailwind CSS
+- **Mathematical Engine**: Custom zero-dependency numerical linear algebra engine (`src/lib/mathEngine.ts` & `src/lib/linearSolver.ts`)
+
+```text
+matrix-warp/
+├── .github/workflows/
+│   ├── deploy.yml              # Automatic GitHub Pages deployment on push to main
+│   └── opencode.yml            # Autonomous AI development workflow
+├── src/
+│   ├── components/
+│   │   ├── ArgandWidget.tsx        # Complex plane, unit circle, ρ(A) & Gershgorin discs
+│   │   ├── Canvas2D.tsx            # Interactive 2D canvas (grid, det, SVD, Lp, rows, iter paths)
+│   │   ├── Canvas3D.tsx            # Interactive 3D Three.js scene (parallelepiped, planes, Lp ball)
+│   │   ├── ControlsTime.tsx        # Homotopy M(t) & Power Iteration A^k v controls
+│   │   ├── LinearSystemPanel.tsx   # Ax=b direct & iterative solvers + convergence chart
+│   │   ├── MatrixInput.tsx         # 2x2 / 3x3 matrix editor & quick actions
+│   │   ├── MetricsPanel.tsx        # Spectral metrics, properties & SVD/LU/QR decompositions
+│   │   ├── NormControlPanel.tsx    # Continuous Lp norm slider (p in [1, inf])
+│   │   ├── Sidebar.tsx             # Tabbed navigation sidebar
+│   │   └── VectorInput.tsx         # Test vector v editor
+│   ├── lib/
+│   │   ├── linearSolver.ts         # Cramer, LU, Pseudoinverse, Jacobi, Gauss-Seidel, SOR, CG
+│   │   ├── mathEngine.ts           # Determinants, Eigen, SVD, LU, QR, Gershgorin, Lp norms
+│   │   └── presets.ts              # Canonical 2D & 3D operator presets
+│   ├── types/
+│   │   └── math.ts                 # TypeScript interfaces
+│   └── App.tsx                     # Root application state & HUD layer toggles
 └── README.md
 ```
 
 ---
 
-## 🔒 Security & Privacy
+## 🚀 Local Development
 
-For private projects, set the `OPENCODE_API_KEY` repository secret. When provided, OpenCode routes requests through paid, zero-data-retention endpoints. When omitted, it safely falls back to standard community endpoints.
+```bash
+# Install dependencies
+npm ci
 
-### Workflow & CI/CD Permissions
-By default, GitHub Actions' default `GITHUB_TOKEN` is prevented from pushing commits modifying `.github/workflows/` (to prevent privilege escalation).
-- If your autonomous workflow needs to modify or generate GitHub Actions workflows, set a repository secret named `GH_PAT` (Personal Access Token with `workflow` scope).
-- When `GH_PAT` is omitted, the pipeline automatically detects and safely redirects any generated CI/CD workflows to `templates/workflows/`, preventing rejection errors and preserving the generated code.
+# Start local development server with HMR
+npm run dev
 
-For reporting security vulnerabilities in this template, see [SECURITY.md](SECURITY.md).
+# Run TypeScript type-checking
+npm run typecheck
+
+# Build production bundle (output in dist/)
+npm run build
+
+# Preview production build locally
+npm run preview
+```
+
+---
+
+## 🤝 Contributing & Community Standards
+
+Contributions, bug reports, and feature requests are welcome! Please review our community documents:
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
 
 ---
 
 ## 📄 License
 
-This template is licensed under the [MIT License](LICENSE).
-echo "---done---"
-ls templates/workflows/ && echo "---" && tail -30 README.md
-
-
-## Interactive Linear Transformation Visualizer
-
-This is a zero-backend, client-side single-page app for visualizing 2x2 and 3x3 linear transformations. Built with Vite + TypeScript + React + Tailwind + Three.js + mathjs.
-
-### Features
-- Toggle between 2D (2x2) and 3D (3x3)
-- Matrix input with presets: Identity, Rotation, Scaling, Shear, Reflection, Projection, Singular, Ill-conditioned
-- Test vector input with visualization of v and Av
-- Interpolation M(t) = (1-t)I + tA (slider t in [0,1])
-- Power iteration mode v_k = A^k v (play/pause/reset/step)
-- Metrics: det, trace, rank, Frobenius norm, spectral norm (σ_max), condition number κ = σ_max/σ_min (∞ if singular), eigenvalues/eigenvectors (real/imaginary), singular values
-- 2D: original/deformed grid, unit circle → ellipse with semi-axes σ1,σ2, highlighted real eigenvector lines, blue/red vectors, trajectory/orbit
-- 3D: axes, unit cube → parallelepiped (|det|), unit sphere → ellipsoid with axes σi, test vectors and trajectory, OrbitControls
-- Robust handling for singular/ill-conditioned matrices and complex eigenvalues
-- No CDN dependencies; all assets bundled
-
-### Development
-```bash
-npm ci
-npm run dev
-npm run typecheck
-npm run build
-npm run preview
-```
-
-### Deploy to GitHub Pages
-1. Build with `base: './'` configured in `vite.config.ts` (already set). Output goes to `dist/`.
-2. Use GitHub Actions with "GitHub Actions" as Pages source, or deploy `dist/` to `gh-pages` branch.
-3. See example workflow template at [`templates/workflows/deploy.yml`](templates/workflows/deploy.yml). **Do not** place workflows in `.github/workflows/` - save them as templates and follow the instructions above.
-
-### Notes
-- For complex eigenvalues (e.g. rotation), directional eigenlines are not rendered.
-- Condition number shown as ∞ for singular matrices.
-- Rendering uses `requestAnimationFrame` for smooth updates.
+Distributed under the [MIT License](LICENSE).
