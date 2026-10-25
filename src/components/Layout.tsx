@@ -1,12 +1,18 @@
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
-export default function Layout({ sidebar, children }: { sidebar: ReactNode; children: ReactNode }) {
+export default function Layout({
+  sidebar,
+  children,
+}: {
+  sidebar: ReactNode
+  children: ReactNode
+}) {
   return (
-    <div className="h-full w-full grid grid-cols-1 md:grid-cols-[340px_1fr]">
-      <aside className="border-r border-white/10 overflow-auto">
+    <div className="flex flex-col lg:flex-row w-screen h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <aside className="w-full lg:w-[410px] xl:w-[440px] h-[46vh] lg:h-full shrink-0 overflow-hidden z-20 shadow-2xl">
         {sidebar}
       </aside>
-      <main className="relative overflow-hidden">{children}</main>
+      <main className="flex-1 h-[54vh] lg:h-full relative overflow-hidden">{children}</main>
     </div>
   )
 }

@@ -1,29 +1,56 @@
-export type Matrix2x2 = [[number, number], [number, number]];
-export type Matrix3x3 = [[number, number], [number, number], [number, number], [number, number]?] | any; // use arrays
-export type Matrix2 = number[][];
-export type Matrix3 = number[][];
-export type Vector2 = [number, number];
-export type Vector3 = [number, number, number];
+export type Mode = '2d' | '3d'
 
-export type Complex = {
-  re: number;
-  im: number;
-};
+export interface Complex {
+  re: number
+  im: number
+}
 
-export type EigenPair = {
-  value: Complex;
-  vector: number[]; // real approximation or direction
-};
+export interface EigenPair {
+  value: Complex
+  isReal: boolean
+  modulus: number
+  angleDeg: number
+  /** Normalized real eigenvector (null if eigenvalue is non-real) */
+  vector: number[] | null
+}
 
-export type Metrics = {
-  det: number | null;
-  trace: number | null;
-  rank: number | null;
-  normFrobenius: number | null;
-  normSpectral: number | null;
-  cond: number | null; // kappa, Infinity if singular
-  singular: boolean;
-  eigenvalues: Complex[];
-  eigenvectors: number[][] | null;
-  singularValues: number[];
-};
+export interface SVDResult {
+  /** Singular values sorted descending: sigma_1 >= sigma_2 (>= sigma_3) >= 0 */
+  singularValues: number[]
+  /** Orthonormal left singular vectors (columns of U, i.e. UCols[i] is u_i) */
+  uVectors: number[][]
+  /** Orthonormal right singular vectors (columns of V, i.e. VCols[i] is v_i) */
+  vVectors: number[][]
+}
+
+export type StabilityLevel = 'optimal' | 'moderate' | 'ill-conditioned' | 'singular'
+
+export interface Metrics {
+  det: number
+  trace: number
+  rank: number
+  nullity: number
+  normFrobenius: number
+  normSpectral: number
+  cond: number
+  singular: boolean
+  orientationFlipped: boolean
+  collapseDescription: string
+  stability: StabilityLevel
+  eigenvalues: Complex[]
+  eigenvectors: number[][]
+  eigenPairs: EigenPair[]
+  singularValues: number[]
+  svd: SVDResult
+  inverse: number[][] | null
+}
+
+export interface LayerVisibility {
+  baseGrid: boolean
+  warpedGrid: boolean
+  unitArea: boolean
+  svdCircle: boolean
+  eigenLines: boolean
+  vectors: boolean
+  trajectory: boolean
+}

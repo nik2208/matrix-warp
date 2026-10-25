@@ -1,4 +1,4 @@
-import { Mode } from '../App'
+import type { Mode } from '../types/math'
 
 export default function ModeToggle({ mode, setMode }: { mode: Mode; setMode: (m: Mode) => void }) {
   return (
