@@ -6,6 +6,8 @@
 # ==============================================================================
 set -euo pipefail
 
+cd "$(dirname "$0")/.."
+
 BUMP_TYPE="${1:-patch}"
 SUMMARY="${2:-Autonomous update via OpenCode}"
 

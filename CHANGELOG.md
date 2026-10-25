@@ -3,6 +3,11 @@
 All notable changes to **Matrix Warp** are documented in this file.
 This project adheres to [Semantic Versioning (SemVer 2.0.0)](https://semver.org/).
 
+## [1.1.1] - 2026-10-25
+
+### Changed
+- Add Google Search Console verification meta tag
+
 ## [1.1.0] - 2026-10-25
 
 ### Added
