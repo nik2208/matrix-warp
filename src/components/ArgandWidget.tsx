@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
 import type { Metrics } from '../types/math'
 import { formatComplex, formatNum } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface ArgandWidgetProps {
   metrics: Metrics
 }
 
 export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
+  const { tr } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -26,7 +28,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
     ctx.fillStyle = '#050811'
     ctx.fillRect(0, 0, w, h)
 
-    // Determine dynamic radius to fit unit circle, spectral radius, and Gershgorin discs
     let maxExtent = Math.max(1.25, metrics.spectralRadius * 1.2)
     for (const g of metrics.gershgorin) {
       maxExtent = Math.max(maxExtent, Math.abs(g.center) + g.radius + 0.3)
@@ -37,7 +38,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
 
     const toPt = (re: number, im: number): [number, number] => [cx + re * scale, cy - im * scale]
 
-    // Axes Re(λ) and Im(λ)
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)'
     ctx.lineWidth = 1
     ctx.beginPath()
@@ -52,7 +52,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
     ctx.fillText('Re(λ)', w - 34, cy - 5)
     ctx.fillText('Im(λ)', cx + 5, 12)
 
-    // 1. Gershgorin Discs D(a_ii, R_i)
     const discColors = [
       'rgba(56, 189, 248, 0.12)',
       'rgba(168, 85, 247, 0.12)',
@@ -78,7 +77,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
       ctx.restore()
     })
 
-    // 2. Unit Stability Circle |λ| = 1
     ctx.save()
     ctx.beginPath()
     ctx.arc(cx, cy, 1 * scale, 0, Math.PI * 2)
@@ -88,7 +86,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
     ctx.stroke()
     ctx.restore()
 
-    // 3. Spectral Radius Circle |λ| = ρ(A)
     if (metrics.spectralRadius > 1e-4) {
       ctx.save()
       ctx.beginPath()
@@ -99,7 +96,6 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
       ctx.restore()
     }
 
-    // 4. Eigenvalue points λ_i
     metrics.eigenPairs.forEach((pair, idx) => {
       const [px, py] = toPt(pair.value.re, pair.value.im)
       ctx.save()
@@ -130,10 +126,13 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
       <div className="flex items-center justify-between">
         <div>
           <span className="text-xs font-semibold text-slate-200">
-            Complex Spectrum & Gershgorin Discs
+            {tr('Complex Spectrum & Gershgorin Discs', 'Spettro Complesso & Dischi di Gershgorin')}
           </span>
           <p className="text-[10px] text-slate-400">
-            Argand plane: eigenvalues λ_i, unit circle |λ|=1, spectral radius ρ(A)
+            {tr(
+              'Argand plane: eigenvalues λ_i, unit circle |λ|=1, spectral radius ρ(A)',
+              'Piano di Argand: autovalori λ_i, cerchio unitario |λ|=1, raggio spettrale ρ(A)'
+            )}
           </p>
         </div>
         <span className="text-xs font-mono font-bold text-teal-300 bg-teal-500/15 border border-teal-500/30 px-2 py-0.5 rounded-lg">
@@ -158,10 +157,10 @@ export default function ArgandWidget({ metrics }: ArgandWidgetProps) {
           }
         >
           {metrics.spectralRadius < 1
-            ? 'Aᵏ → 0 (Contractive)'
+            ? tr('Aᵏ → 0 (Contractive)', 'Aᵏ → 0 (Contrattiva)')
             : metrics.spectralRadius > 1
-              ? 'Aᵏ Diverges (Expansive)'
-              : 'ρ(A) = 1 (Marginal)'}
+              ? tr('Aᵏ Diverges (Expansive)', 'Aᵏ Diverge (Espansiva)')
+              : tr('ρ(A) = 1 (Marginal)', 'ρ(A) = 1 (Marginale)')}
         </span>
       </div>
 

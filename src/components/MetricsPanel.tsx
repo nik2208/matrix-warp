@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Metrics, Mode } from '../types/math'
 import { formatComplex, formatNum, transposeMatrix } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 import ArgandWidget from './ArgandWidget'
 
 interface MetricsPanelProps {
@@ -31,6 +32,7 @@ function MiniMatrixView({ title, mat }: { title: string; mat: number[][] }) {
 }
 
 export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsPanelProps) {
+  const { tr } = useI18n()
   const dim = mode === '2d' ? 2 : 3
   const maxSigma = Math.max(...metrics.singularValues, 1e-6)
   const [decompTab, setDecompTab] = useState<'svd' | 'lu' | 'cholesky' | 'qr'>('svd')
@@ -38,64 +40,64 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
   const stabilityStyles = {
     optimal: {
       badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-      label: 'Well-Conditioned',
+      label: tr('Well-Conditioned', 'Ben Condizionata'),
       dot: 'bg-emerald-400',
     },
     moderate: {
       badge: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
-      label: 'Moderately Conditioned',
+      label: tr('Moderately Conditioned', 'Moderatamente Condizionata'),
       dot: 'bg-sky-400',
     },
     'ill-conditioned': {
       badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-      label: 'Ill-Conditioned (High κ)',
+      label: tr('Ill-Conditioned (High κ)', 'Mal Condizionata (κ Alto)'),
       dot: 'bg-amber-400',
     },
     singular: {
       badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-      label: 'Singular (Rank Deficient)',
+      label: tr('Singular (Rank Deficient)', 'Singolare (Rango Deficiente)'),
       dot: 'bg-rose-400',
     },
   }[metrics.stability]
 
   const propBadges: { label: string; active: boolean; color: string }[] = [
     {
-      label: 'Symmetric (A=Aᵀ)',
+      label: tr('Symmetric (A=Aᵀ)', 'Simmetrica (A=Aᵀ)'),
       active: metrics.properties.isSymmetric,
       color: 'text-sky-300 border-sky-500/30 bg-sky-500/10',
     },
     {
-      label: 'Positive Definite (SPD)',
+      label: tr('Positive Definite (SPD)', 'Definita Positiva (SPD)'),
       active: metrics.properties.isPositiveDefinite,
       color: 'text-teal-300 border-teal-500/30 bg-teal-500/10',
     },
     {
-      label: 'Diag Dominant',
+      label: tr('Diag Dominant', 'Diag. Dominante'),
       active: metrics.properties.isStrictlyDiagonallyDominant,
       color: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
     },
     {
-      label: 'Tridiagonal',
+      label: tr('Tridiagonal', 'Tridiagonale'),
       active: metrics.properties.isTridiagonal,
       color: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
     },
     {
-      label: 'Orthogonal (QᵀQ=I)',
+      label: tr('Orthogonal (QᵀQ=I)', 'Ortogonale (QᵀQ=I)'),
       active: metrics.properties.isOrthogonal,
       color: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
     },
     {
-      label: 'Normal (AAᵀ=AᵀA)',
+      label: tr('Normal (AAᵀ=AᵀA)', 'Normale (AAᵀ=AᵀA)'),
       active: metrics.properties.isNormal,
       color: 'text-indigo-300 border-indigo-500/30 bg-indigo-500/10',
     },
     {
-      label: 'Idempotent (A²=A)',
+      label: tr('Idempotent (A²=A)', 'Idempotente (A²=A)'),
       active: metrics.properties.isIdempotent,
       color: 'text-purple-300 border-purple-500/30 bg-purple-500/10',
     },
     {
-      label: 'Involutory (A²=I)',
+      label: tr('Involutory (A²=I)', 'Involutoria (A²=I)'),
       active: metrics.properties.isInvolutory,
       color: 'text-pink-300 border-pink-500/30 bg-pink-500/10',
     },
@@ -106,11 +108,10 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
 
   return (
     <div className="space-y-4">
-      {/* Geometric Status & Structural Classification Badges */}
       <div className="rounded-xl bg-slate-900/90 border border-slate-800 p-3.5 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            Matrix Anatomy & Diagnostics
+            {tr('Matrix Anatomy & Diagnostics', 'Anatomia & Diagnostica Matrice')}
           </span>
           <span
             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${stabilityStyles.badge}`}
@@ -123,7 +124,7 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
           <span>{metrics.collapseDescription}</span>
           {metrics.orientationFlipped && (
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-              Orientation Flip
+              {tr('Orientation Flip', 'Orientamento Invertito')}
             </span>
           )}
         </div>
@@ -143,13 +144,15 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         </div>
       </div>
 
-      {/* Explicit Pairings: (1) Positive Definiteness + Condition Number, (2) Diagonal Dominance + Spectral Radius */}
+      {/* Explicit Pairings */}
       <div className="grid grid-cols-1 gap-2.5">
-        {/* Card 1: Positive Definiteness (SPD) + Conditioning kappa_2(A) */}
         <div className="rounded-xl bg-slate-900/80 border border-teal-500/30 p-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-teal-300">
-              Definitezza Positiva (SPD) & Condizionamento κ₂(A)
+              {tr(
+                'Positive Definiteness (SPD) & Conditioning κ₂(A)',
+                'Definitezza Positiva (SPD) & Condizionamento κ₂(A)'
+              )}
             </span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
@@ -161,10 +164,10 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
               }`}
             >
               {pd.isSPD
-                ? '✓ SPD (A=Aᵀ, λ_i > 0)'
+                ? tr('✓ SPD (A=Aᵀ, λ_i > 0)', '✓ SPD (A=Aᵀ, λ_i > 0)')
                 : pd.isPositiveDefiniteQuadratic
-                  ? 'xᵀAx > 0 (Non-Sym)'
-                  : '✗ Non Definita Positiva'}
+                  ? tr('xᵀAx > 0 (Non-Sym)', 'xᵀAx > 0 (Non Simm.)')
+                  : tr('✗ Not Positive Definite', '✗ Non Definita Positiva')}
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
@@ -186,11 +189,13 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
           </div>
         </div>
 
-        {/* Card 2: Diagonal Dominance + Spectral Radius rho(A) */}
         <div className="rounded-xl bg-slate-900/80 border border-amber-500/30 p-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-semibold text-amber-300">
-              Dominanza Diagonale & Raggio Spettrale ρ(A)
+              {tr(
+                'Diagonal Dominance & Spectral Radius ρ(A)',
+                'Dominanza Diagonale & Raggio Spettrale ρ(A)'
+              )}
             </span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
@@ -202,18 +207,21 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
               }`}
             >
               {dd.isStrictRow
-                ? '✓ Stretta (Righe)'
+                ? tr('✓ Strict (Rows)', '✓ Stretta (Righe)')
                 : dd.isStrictCol
-                  ? '✓ Stretta (Colonne)'
+                  ? tr('✓ Strict (Cols)', '✓ Stretta (Colonne)')
                   : dd.isWeakRow
-                    ? '~ Debole (|a_ii| ≥ R_i)'
-                    : '✗ Non Dominante'}
+                    ? tr('~ Weak (|a_ii| ≥ R_i)', '~ Debole (|a_ii| ≥ R_i)')
+                    : tr('✗ Not Dominant', '✗ Non Dominante')}
             </span>
           </div>
           <div className="flex items-center justify-between text-[11px] font-mono text-slate-300">
             <span>
               {dd.rows
-                .map((r) => `R${r.row}: ${formatNum(r.diagAbs, 1)}${r.isStrict ? '>' : '≤'}${formatNum(r.offDiagSum, 1)}`)
+                .map(
+                  (r) =>
+                    `R${r.row}: ${formatNum(r.diagAbs, 1)}${r.isStrict ? '>' : '≤'}${formatNum(r.offDiagSum, 1)}`
+                )
                 .join(' | ')}
             </span>
             <span className="text-teal-300 font-bold">
@@ -223,11 +231,11 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         </div>
       </div>
 
-      {/* Core Invariants Grid (det, spectral radius, cond, trace, rank, norms) */}
+      {/* Core Invariants Grid */}
       <div className="grid grid-cols-2 gap-2.5">
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Determinant</span>
+            <span>{tr('Determinant', 'Determinante')}</span>
             <span className="font-mono text-slate-500">det(A)</span>
           </div>
           <div className="mt-1 text-base font-mono font-bold text-slate-100">
@@ -240,7 +248,7 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
 
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Spectral Radius</span>
+            <span>{tr('Spectral Radius', 'Raggio Spettrale')}</span>
             <span className="font-mono text-teal-400">ρ(A)</span>
           </div>
           <div className="mt-1 text-base font-mono font-bold text-teal-300">
@@ -251,7 +259,7 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
 
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Condition No. (L₂)</span>
+            <span>{tr('Condition No. (L₂)', 'Condizionamento (L₂)')}</span>
             <span className="font-mono text-slate-500">κ₂(A)</span>
           </div>
           <div
@@ -270,7 +278,7 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
 
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Trace & Rank</span>
+            <span>{tr('Trace & Rank', 'Traccia & Rango')}</span>
             <span className="font-mono text-slate-500">tr / rk</span>
           </div>
           <div className="mt-1 text-base font-mono font-bold text-slate-100">
@@ -280,24 +288,26 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
             </span>
           </div>
           <div className="mt-0.5 text-[10px] text-slate-400">
-            Nullity dim(ker A) = {metrics.nullity}
+            {tr('Nullity dim(ker A)', 'Nullità dim(ker A)')} = {metrics.nullity}
           </div>
         </div>
 
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Norms L₁ / L∞</span>
+            <span>{tr('Norms L₁ / L∞', 'Norme L₁ / L∞')}</span>
             <span className="font-mono text-slate-500">‖A‖₁, ‖A‖∞</span>
           </div>
           <div className="mt-1 text-sm font-mono font-bold text-fuchsia-300">
             {formatNum(metrics.norm1, 3)} / {formatNum(metrics.normInf, 3)}
           </div>
-          <div className="mt-0.5 text-[10px] text-slate-400">Col max / Row max</div>
+          <div className="mt-0.5 text-[10px] text-slate-400">
+            {tr('Col max / Row max', 'Max col / Max riga')}
+          </div>
         </div>
 
         <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3">
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Norms L₂ / Frob</span>
+            <span>{tr('Norms L₂ / Frob', 'Norme L₂ / Frob')}</span>
             <span className="font-mono text-slate-500">‖A‖₂, ‖A‖_F</span>
           </div>
           <div className="mt-1 text-sm font-mono font-bold text-sky-300">
@@ -307,14 +317,13 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         </div>
       </div>
 
-      {/* Argand Plane & Gershgorin Discs */}
       <ArgandWidget metrics={metrics} />
 
-      {/* Eigenvalues & Eigenvectors with Set v = e_i */}
+      {/* Eigenvalues & Eigenvectors */}
       <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3.5 space-y-2.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold text-slate-200">
-            Eigenvectors & Invariant Subspaces
+            {tr('Eigenvectors & Invariant Subspaces', 'Autovettori & Sottospazi Invarianti')}
           </span>
           <span className="text-[10px] font-mono text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">
             A e_i = λ_i e_i
@@ -339,7 +348,7 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
                   }`}
                 >
                   {pair.isReal
-                    ? 'Real Axis'
+                    ? tr('Real Axis', 'Asse Reale')
                     : `|λ|=${formatNum(pair.modulus, 2)}, θ=${formatNum(pair.angleDeg, 1)}°`}
                 </span>
               </div>
@@ -355,15 +364,21 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
                       onClick={() => onSelectVector(pair.vector!)}
                       className="text-[10px] font-medium px-2 py-0.5 rounded bg-teal-500/15 hover:bg-teal-500/30 text-teal-300 border border-teal-500/30 transition shrink-0"
                     >
-                      Set v = e_{idx + 1}
+                      {tr(`Set v = e_${idx + 1}`, `Imposta v = e_${idx + 1}`)}
                     </button>
                   )}
                 </div>
               ) : (
                 <div className="text-[11px] text-slate-400 italic">
                   {pair.isReal
-                    ? 'Defective eigenvalue (missing independent eigenvector)'
-                    : 'Complex conjugate rotation-scaling mode'}
+                    ? tr(
+                        'Defective eigenvalue (missing independent eigenvector)',
+                        'Autovalore difettivo (autovettore indipendente mancante)'
+                      )
+                    : tr(
+                        'Complex conjugate rotation-scaling mode',
+                        'Modo complesso coniugato di roto-omosia'
+                      )}
                 </div>
               )}
             </div>
@@ -371,10 +386,12 @@ export default function MetricsPanel({ metrics, mode, onSelectVector }: MetricsP
         </div>
       </div>
 
-      {/* Decompositions Explorer: SVD, PA=LU, Cholesky LL^T, A=QR */}
+      {/* Decompositions Explorer */}
       <div className="rounded-xl bg-slate-900/75 border border-slate-800/90 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-slate-200">Matrix Decompositions</span>
+          <span className="text-xs font-semibold text-slate-200">
+            {tr('Matrix Decompositions', 'Decomposizioni Matriciali')}
+          </span>
           <div className="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800">
             {(
               [

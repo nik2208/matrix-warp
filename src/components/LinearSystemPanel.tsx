@@ -6,6 +6,7 @@ import type {
   Mode,
 } from '../types/math'
 import { cloneMatrix, formatNum, multiplyMatrices, transposeMatrix } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface LinearSystemPanelProps {
   mode: Mode
@@ -80,6 +81,7 @@ export default function LinearSystemPanel({
   onToggleIterativePaths,
   onSetTestVector,
 }: LinearSystemPanelProps) {
+  const { tr } = useI18n()
   const n = mode === '2d' ? 2 : 3
   const [bDrafts, setBDrafts] = useState<string[]>(() => b.map((v) => formatNum(v, 3)))
   const [directTab, setDirectTab] = useState<'gauss' | 'cholesky' | 'thomas' | 'cramer'>('gauss')
@@ -106,7 +108,6 @@ export default function LinearSystemPanel({
     if (!onMatrixChange) return
     const at = transposeMatrix(matrix)
     const ata = multiplyMatrices(at, matrix)
-    // Add small regularization if singular so it is strictly SPD
     for (let i = 0; i < ata.length; i++) {
       if (ata[i][i] < 0.2) ata[i][i] += 1
     }
@@ -121,7 +122,6 @@ export default function LinearSystemPanel({
     onMatrixChange(next)
   }
 
-  // Draw Residual Convergence Chart
   useEffect(() => {
     const canvas = chartRef.current
     if (!canvas) return
@@ -235,7 +235,10 @@ export default function LinearSystemPanel({
       <div className="rounded-xl bg-slate-900/95 border border-teal-500/30 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-teal-300">
-            Solver Conditions: SPD, κ(A), Diag Dominance & ρ
+            {tr(
+              'Solver Conditions: SPD, κ(A), Diag Dominance & ρ',
+              'Condizioni Solutori: SPD, κ(A), Dom. Diagonale & ρ'
+            )}
           </span>
         </div>
 
@@ -243,7 +246,10 @@ export default function LinearSystemPanel({
         <div className="rounded-lg bg-slate-950/85 border border-slate-800 p-2.5 space-y-1.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-semibold text-slate-200">
-              1. Definita Positiva (SPD) & Condizionamento
+              {tr(
+                '1. Positive Definiteness (SPD) & Conditioning',
+                '1. Definitezza Positiva (SPD) & Condizionamento'
+              )}
             </span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
@@ -255,22 +261,26 @@ export default function LinearSystemPanel({
               }`}
             >
               {pd.isSPD
-                ? '✓ SPD (A=Aᵀ, xᵀAx > 0)'
+                ? tr('✓ SPD (A=Aᵀ, xᵀAx > 0)', '✓ SPD (A=Aᵀ, xᵀAx > 0)')
                 : pd.isPositiveDefiniteQuadratic
-                  ? 'xᵀAx > 0 (Non-Sym)'
-                  : '✗ Non Definita Positiva'}
+                  ? tr('xᵀAx > 0 (Non-Sym)', 'xᵀAx > 0 (Non Simm.)')
+                  : tr('✗ Not Positive Definite', '✗ Non Definita Positiva')}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-0.5">
             <div className="bg-slate-900/80 rounded px-2 py-1 border border-slate-800/80">
-              <div className="text-[10px] text-slate-400">Sylvester Minors Δ_k</div>
+              <div className="text-[10px] text-slate-400">
+                {tr('Sylvester Minors Δ_k', 'Minori di Sylvester Δ_k')}
+              </div>
               <div className="text-slate-200">
                 {pd.leadingMinors.map((m, i) => `Δ_${i + 1}=${formatNum(m, 2)}`).join(', ')}
               </div>
             </div>
             <div className="bg-slate-900/80 rounded px-2 py-1 border border-slate-800/80">
-              <div className="text-[10px] text-slate-400">Condition No. κ₂(A)</div>
+              <div className="text-[10px] text-slate-400">
+                {tr('Condition No. κ₂(A)', 'Condizionamento κ₂(A)')}
+              </div>
               <div
                 className={`font-bold ${
                   metrics.singular
@@ -280,7 +290,7 @@ export default function LinearSystemPanel({
                       : 'text-emerald-300'
                 }`}
               >
-                κ₂ = {formatNum(metrics.cond, 3)} ({metrics.stability})
+                κ₂ = {formatNum(metrics.cond, 3)}
               </div>
             </div>
           </div>
@@ -288,8 +298,14 @@ export default function LinearSystemPanel({
           <div className="text-[10px] text-slate-400 flex items-center justify-between pt-0.5">
             <span>
               {pd.isSPD
-                ? '→ Cholesky LLᵀ applicabile; CG converge in ≤ n passi.'
-                : `→ Cholesky LLᵀ non applicabile (${pd.isSymmetric ? 'minori Δ_k ≤ 0' : 'A ≠ Aᵀ'}).`}
+                ? tr(
+                    '→ Cholesky LLᵀ applicable; CG converges in ≤ n steps.',
+                    '→ Cholesky LLᵀ applicabile; CG converge in ≤ n passi.'
+                  )
+                : tr(
+                    `→ Cholesky LLᵀ not applicable (${pd.isSymmetric ? 'minors Δ_k ≤ 0' : 'A ≠ Aᵀ'}).`,
+                    `→ Cholesky LLᵀ non applicabile (${pd.isSymmetric ? 'minori Δ_k ≤ 0' : 'A ≠ Aᵀ'}).`
+                  )}
             </span>
           </div>
         </div>
@@ -298,7 +314,10 @@ export default function LinearSystemPanel({
         <div className="rounded-lg bg-slate-950/85 border border-slate-800 p-2.5 space-y-1.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[11px] font-semibold text-slate-200">
-              2. Dominanza Diagonale & Raggio Spettrale
+              {tr(
+                '2. Diagonal Dominance & Spectral Radius',
+                '2. Dominanza Diagonale & Raggio Spettrale'
+              )}
             </span>
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded border font-semibold ${
@@ -310,16 +329,15 @@ export default function LinearSystemPanel({
               }`}
             >
               {dd.isStrictRow
-                ? '✓ Stretta (Righe)'
+                ? tr('✓ Strict (Rows)', '✓ Stretta (Righe)')
                 : dd.isStrictCol
-                  ? '✓ Stretta (Colonne)'
+                  ? tr('✓ Strict (Cols)', '✓ Stretta (Colonne)')
                   : dd.isWeakRow
-                    ? '~ Debole (|a_ii| ≥ R_i)'
-                    : '✗ Non Diag. Dominante'}
+                    ? tr('~ Weak (|a_ii| ≥ R_i)', '~ Debole (|a_ii| ≥ R_i)')
+                    : tr('✗ Not Diag. Dominant', '✗ Non Diag. Dominante')}
             </span>
           </div>
 
-          {/* Row-by-row |a_ii| vs sum |a_ij| */}
           <div className="space-y-1 text-[10px] font-mono">
             {dd.rows.map((r) => (
               <div
@@ -327,8 +345,8 @@ export default function LinearSystemPanel({
                 className="flex items-center justify-between bg-slate-900/70 px-2 py-0.5 rounded border border-slate-800/70"
               >
                 <span className="text-slate-400">
-                  Riga {r.row}: |a_{r.row}{r.row}| = {formatNum(r.diagAbs, 2)} vs ∑|a_{r.row}j| ={' '}
-                  {formatNum(r.offDiagSum, 2)}
+                  {tr(`Row ${r.row}`, `Riga ${r.row}`)}: |a_{r.row}{r.row}| ={' '}
+                  {formatNum(r.diagAbs, 2)} vs ∑|a_{r.row}j| = {formatNum(r.offDiagSum, 2)}
                 </span>
                 <span className={r.isStrict ? 'text-emerald-300' : 'text-rose-300'}>
                   {r.isStrict ? '✓ >' : '✗ ≤'} (Δ={formatNum(r.margin, 2)})
@@ -337,7 +355,6 @@ export default function LinearSystemPanel({
             ))}
           </div>
 
-          {/* Spectral Radius rho(A) + Iteration Spectral Radii rho(G) */}
           <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono pt-0.5">
             <div className="bg-slate-900/80 rounded px-2 py-1 border border-slate-800/80">
               <div className="text-slate-400">ρ(A) = max|λ|</div>
@@ -376,27 +393,34 @@ export default function LinearSystemPanel({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-amber-300">
-              Linear System A x = b
+              {tr('Linear System A x = b', 'Sistema Lineare A x = b')}
             </span>
             <p className="text-[10px] text-slate-400">
-              Set RHS vector b and inspect Direct & Iterative solutions
+              {tr(
+                'Set RHS vector b and inspect Direct & Iterative solutions',
+                'Imposta il termine noto b ed esplora i metodi Diretti e Iterativi'
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={() => onSetTestVector(solution.xExact)}
             className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-300 border border-emerald-500/40 text-[11px] font-semibold transition"
-            title="Set test vector v to the solution x* so Av = b"
+            title={tr(
+              'Set test vector v to the solution x* so Av = b',
+              'Imposta il vettore test v alla soluzione x* così Av = b'
+            )}
           >
-            Set v = x*
+            {tr('Set v = x*', 'Imposta v = x*')}
           </button>
         </div>
 
         <div className="grid grid-cols-2 gap-2.5">
-          {/* Editable RHS Vector b */}
           <div className="rounded-lg bg-slate-950/80 border border-amber-500/30 p-2.5 space-y-1.5">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-amber-300">Target Vector b</span>
+              <span className="font-semibold text-amber-300">
+                {tr('Target Vector b', 'Vettore Termine Noto b')}
+              </span>
               <span className="font-mono text-[10px] text-slate-500">RHS</span>
             </div>
             {b.map((_, idx) => (
@@ -414,11 +438,12 @@ export default function LinearSystemPanel({
             ))}
           </div>
 
-          {/* Computed Solution x* */}
           <div className="rounded-lg bg-slate-950/80 border border-emerald-500/30 p-2.5 space-y-1.5">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-semibold text-emerald-300">
-                {solution.isExact ? 'Exact Solution x*' : 'Least-Squares x⁺'}
+                {solution.isExact
+                  ? tr('Exact Solution x*', 'Soluzione Esatta x*')
+                  : tr('Least-Squares x⁺', 'Minimi Quadrati x⁺')}
               </span>
               <span className="font-mono text-[10px] text-slate-400">
                 {metrics.singular ? 'A⁺b' : 'A⁻¹b'}
@@ -438,7 +463,6 @@ export default function LinearSystemPanel({
           </div>
         </div>
 
-        {/* Visual Toggles for Row Picture (Planes/Lines) and Column Picture */}
         <div className="grid grid-cols-3 gap-1.5 pt-1">
           <button
             type="button"
@@ -450,7 +474,9 @@ export default function LinearSystemPanel({
                 : 'bg-slate-950 border-slate-800 text-slate-400'
             }`}
           >
-            {mode === '2d' ? '◉ Row Lines' : '◉ Row Planes'}
+            {mode === '2d'
+              ? tr('◉ Row Lines', '◉ Rette Righe')
+              : tr('◉ Row Planes', '◉ Piani Righe')}
           </button>
           <button
             type="button"
@@ -462,7 +488,7 @@ export default function LinearSystemPanel({
                 : 'bg-slate-950 border-slate-800 text-slate-400'
             }`}
           >
-            ◉ Col Picture
+            {tr('◉ Col Picture', '◉ Comb. Colonne')}
           </button>
           <button
             type="button"
@@ -474,32 +500,37 @@ export default function LinearSystemPanel({
                 : 'bg-slate-950 border-slate-800 text-slate-400'
             }`}
           >
-            ◉ Iter Paths
+            {tr('◉ Iter Paths', '◉ Traiettorie')}
           </button>
         </div>
       </div>
 
-      {/* 2. DIRECT SOLVERS STUDIO: GAUSS & EVOLUTIONS (LU, PIVOTING, CHOLESKY, THOMAS, CRAMER) */}
+      {/* 2. DIRECT SOLVERS STUDIO: GAUSS & EVOLUTIONS */}
       <div className="rounded-xl bg-slate-900/85 border border-slate-800 p-3.5 space-y-3">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-slate-100">
-              Direct Methods: Gauss & Factorizations
+              {tr(
+                'Direct Methods: Gauss & Factorizations',
+                'Metodi Diretti: Gauss & Fattorizzazioni'
+              )}
             </span>
             <p className="text-[10px] text-slate-400">
-              Gauss Elimination, Partial/Complete Pivoting, Cholesky LLᵀ, Thomas TDMA & Cramer
+              {tr(
+                'Gauss Elimination, Pivoting, Cholesky LLᵀ, Thomas TDMA & Cramer',
+                'Eliminazione di Gauss, Pivoting, Cholesky LLᵀ, Thomas TDMA & Cramer'
+              )}
             </p>
           </div>
         </div>
 
-        {/* Direct Method Selector Tabs */}
         <div className="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[10px] font-semibold">
           {(
             [
               ['gauss', 'Gauss / LU'],
               ['cholesky', 'Cholesky'],
               ['thomas', 'Thomas'],
-              ['cramer', 'Cramer/Rows'],
+              ['cramer', tr('Cramer/Rows', 'Cramer/Righe')],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -517,10 +548,8 @@ export default function LinearSystemPanel({
           ))}
         </div>
 
-        {/* TAB 1: GAUSSIAN ELIMINATION & PIVOTING (NAIVE LU vs PARTIAL PA=LU vs COMPLETE PAQ=LU) */}
         {directTab === 'gauss' && (
           <div className="space-y-2.5">
-            {/* Pivoting Strategy Sub-Selector */}
             <div className="grid grid-cols-3 gap-1 bg-slate-950/70 p-1 rounded-lg border border-slate-800/80 text-[10px]">
               <button
                 type="button"
@@ -531,7 +560,7 @@ export default function LinearSystemPanel({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Partial (PA=LU)
+                {tr('Partial (PA=LU)', 'Parziale (PA=LU)')}
               </button>
               <button
                 type="button"
@@ -553,23 +582,29 @@ export default function LinearSystemPanel({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Complete (PAQ=LU)
+                {tr('Complete (PAQ=LU)', 'Totale (PAQ=LU)')}
               </button>
             </div>
 
             {pivotingMode === 'partial' && (
               <div className="space-y-2">
                 <div className="text-[10px] font-mono text-slate-400 flex justify-between">
-                  <span>Gaussian Elimination with Partial Pivoting</span>
-                  <span className="text-sky-300">{metrics.lu.swaps} row swap(s)</span>
+                  <span>
+                    {tr(
+                      'Gaussian Elimination with Partial Pivoting',
+                      'Eliminazione di Gauss con Pivoting Parziale'
+                    )}
+                  </span>
+                  <span className="text-sky-300">
+                    {metrics.lu.swaps} {tr('row swap(s)', 'scambi(o) righe')}
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  <MiniMatrixBox title="P (Row Perm)" mat={metrics.lu.P} />
-                  <MiniMatrixBox title="L (Multipliers)" mat={metrics.lu.L} />
+                  <MiniMatrixBox title="P (Perm)" mat={metrics.lu.P} />
+                  <MiniMatrixBox title="L (Mult)" mat={metrics.lu.L} />
                   <MiniMatrixBox title="U (Echelon)" mat={metrics.lu.U} />
                 </div>
 
-                {/* Forward & Back substitution vectors */}
                 <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2 space-y-1 text-[11px] font-mono">
                   <div className="flex justify-between text-slate-300">
                     <span className="text-slate-400">1. Forward (Ly = Pb):</span>
@@ -585,10 +620,12 @@ export default function LinearSystemPanel({
                   </div>
                 </div>
 
-                {/* Step-by-step Augmented Matrix [A^(k) | b^(k)] */}
                 <div className="space-y-1.5 pt-1">
                   <div className="text-[10px] font-mono text-slate-400">
-                    Step-by-step Augmented Reduction [A⁽ᵏ⁾ | b⁽ᵏ⁾]:
+                    {tr(
+                      'Step-by-step Augmented Reduction [A⁽ᵏ⁾ | b⁽ᵏ⁾]:',
+                      'Riduzione passo-passo Matrice Aumentata [A⁽ᵏ⁾ | b⁽ᵏ⁾]:'
+                    )}
                   </div>
                   {solution.gauss.steps.map((st) => (
                     <div
@@ -622,21 +659,29 @@ export default function LinearSystemPanel({
                 {metrics.lu.naiveBreakdown || !metrics.lu.naiveL || !metrics.lu.naiveU ? (
                   <div className="rounded-lg bg-rose-950/40 border border-rose-500/40 p-2.5 text-xs text-rose-200 space-y-1">
                     <div className="font-semibold">
-                      ✗ Breakdown: Pivot nullo (a_kk⁽ᵏ⁾ = 0)
+                      {tr(
+                        '✗ Breakdown: Zero pivot encountered (a_kk⁽ᵏ⁾ = 0)',
+                        '✗ Breakdown: Pivot nullo incontrato (a_kk⁽ᵏ⁾ = 0)'
+                      )}
                     </div>
                     <p className="text-[11px] text-rose-300/90">
-                      L'eliminazione di Gauss naive senza pivoting fallisce perché incontra uno zero
-                      sulla diagonale. È necessario il Pivoting Parziale (PA = LU).
+                      {tr(
+                        'Naive Gaussian elimination without pivoting fails because a zero pivot appears on the diagonal. Partial pivoting (PA = LU) is required.',
+                        'L’eliminazione di Gauss naive senza pivoting fallisce perché compare uno zero sulla diagonale. È necessario il Pivoting Parziale (PA = LU).'
+                      )}
                     </p>
                   </div>
                 ) : (
                   <>
                     <div className="text-[10px] font-mono text-slate-400">
-                      Naive Factorization A = L U (nessuno scambio di righe):
+                      {tr(
+                        'Naive Factorization A = L U (no row swaps):',
+                        'Fattorizzazione Naive A = L U (nessuno scambio di righe):'
+                      )}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <MiniMatrixBox title="L_naive (Unit Lower)" mat={metrics.lu.naiveL} />
-                      <MiniMatrixBox title="U_naive (Upper)" mat={metrics.lu.naiveU} />
+                      <MiniMatrixBox title="L_naive" mat={metrics.lu.naiveL} />
+                      <MiniMatrixBox title="U_naive" mat={metrics.lu.naiveU} />
                     </div>
                     {solution.gauss.naiveY && solution.gauss.naiveX && (
                       <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2 space-y-1 text-[11px] font-mono">
@@ -662,16 +707,19 @@ export default function LinearSystemPanel({
             {pivotingMode === 'complete' && (
               <div className="space-y-2">
                 <div className="text-[10px] font-mono text-slate-400">
-                  Complete Pivoting P_c A Q_c = L_c U_c (scambio righe e colonne):
+                  {tr(
+                    'Complete Pivoting P_c A Q_c = L_c U_c (row & column swaps):',
+                    'Pivoting Totale P_c A Q_c = L_c U_c (scambio righe e colonne):'
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
-                  <MiniMatrixBox title="P_c (Row Perm)" mat={metrics.lu.Pc} />
-                  <MiniMatrixBox title="Q_c (Col Perm)" mat={metrics.lu.Qc} />
+                  <MiniMatrixBox title="P_c (Rows)" mat={metrics.lu.Pc} />
+                  <MiniMatrixBox title="Q_c (Cols)" mat={metrics.lu.Qc} />
                   <MiniMatrixBox title="L_c (Lower)" mat={metrics.lu.Lc} />
                   <MiniMatrixBox title="U_c (Upper)" mat={metrics.lu.Uc} />
                 </div>
                 <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2 text-[11px] font-mono flex justify-between">
-                  <span className="text-slate-400">Solution x = Q_c z_c:</span>
+                  <span className="text-slate-400">x = Q_c z_c:</span>
                   <span className="text-emerald-300 font-semibold">
                     x = ({solution.gauss.completeX.map((v) => formatNum(v, 4)).join(', ')})
                   </span>
@@ -681,18 +729,20 @@ export default function LinearSystemPanel({
           </div>
         )}
 
-        {/* TAB 2: CHOLESKY FACTORIZATION (A = L L^T & LDL^T) */}
         {directTab === 'cholesky' && (
           <div className="space-y-2.5">
             {metrics.cholesky.isSPD && metrics.cholesky.L ? (
               <>
                 <div className="flex items-center justify-between text-[10px] font-mono">
                   <span className="text-emerald-300 font-semibold">
-                    ✓ Matrice SPD: A = L Lᵀ attiva (costo ~ n³/6)
+                    {tr(
+                      '✓ SPD Matrix: A = L Lᵀ active (cost ~ n³/6)',
+                      '✓ Matrice SPD: A = L Lᵀ attiva (costo ~ n³/6)'
+                    )}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <MiniMatrixBox title="L (Cholesky Factor)" mat={metrics.cholesky.L} />
+                  <MiniMatrixBox title="L (Cholesky)" mat={metrics.cholesky.L} />
                   <MiniMatrixBox
                     title="Lᵀ (Transpose)"
                     mat={transposeMatrix(metrics.cholesky.L)}
@@ -700,8 +750,7 @@ export default function LinearSystemPanel({
                 </div>
                 {metrics.cholesky.LD && metrics.cholesky.D && (
                   <div className="rounded bg-slate-950/70 border border-slate-800/80 p-2 text-[10px] font-mono text-slate-300">
-                    Root-Free LDLᵀ Diagonal D = diag(
-                    {metrics.cholesky.D.map((d) => formatNum(d, 3)).join(', ')})
+                    LDLᵀ D = diag({metrics.cholesky.D.map((d) => formatNum(d, 3)).join(', ')})
                   </div>
                 )}
                 {solution.choleskySolve.forwardY && solution.choleskySolve.backwardX && (
@@ -724,13 +773,16 @@ export default function LinearSystemPanel({
             ) : (
               <div className="rounded-lg bg-amber-950/30 border border-amber-500/30 p-3 space-y-2">
                 <div className="text-xs font-semibold text-amber-300">
-                  Cholesky A = L Lᵀ richiede una matrice Simmetrica Definita Positiva (SPD)
+                  {tr(
+                    'Cholesky A = L Lᵀ requires a Symmetric Positive Definite (SPD) matrix',
+                    'Cholesky A = L Lᵀ richiede una matrice Simmetrica Definita Positiva (SPD)'
+                  )}
                 </div>
                 <p className="text-[11px] text-slate-300">{metrics.cholesky.reason}</p>
                 {metrics.cholesky.LD && metrics.cholesky.D && (
                   <div className="text-[10px] font-mono text-sky-300 bg-slate-950/70 p-2 rounded border border-slate-800">
-                    Variante simmetrica indefinita A = L_D D L_Dᵀ disponibile: D = diag(
-                    {metrics.cholesky.D.map((d) => formatNum(d, 2)).join(', ')})
+                    {tr('Symmetric indefinite A = L_D D L_Dᵀ available:', 'Variante simmetrica A = L_D D L_Dᵀ disponibile:')}{' '}
+                    D = diag({metrics.cholesky.D.map((d) => formatNum(d, 2)).join(', ')})
                   </div>
                 )}
                 {onMatrixChange && (
@@ -739,7 +791,10 @@ export default function LinearSystemPanel({
                     onClick={handleMakeSPD}
                     className="w-full py-1.5 px-3 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-200 border border-teal-500/40 text-xs font-semibold transition"
                   >
-                    ⚡ Trasforma in SPD (A ← AᵀA) per testare Cholesky
+                    {tr(
+                      '⚡ Convert to SPD (A ← AᵀA) to test Cholesky',
+                      '⚡ Trasforma in SPD (A ← AᵀA) per testare Cholesky'
+                    )}
                   </button>
                 )}
               </div>
@@ -747,7 +802,6 @@ export default function LinearSystemPanel({
           </div>
         )}
 
-        {/* TAB 3: THOMAS ALGORITHM (TDMA FOR TRIDIAGONAL SYSTEMS) */}
         {directTab === 'thomas' && (
           <div className="space-y-2.5">
             <div className="flex items-center justify-between text-[10px] font-mono">
@@ -757,8 +811,14 @@ export default function LinearSystemPanel({
                 }
               >
                 {solution.thomas.isTridiagonal
-                  ? '✓ Matrice Tridiagonale: Algoritmo di Thomas O(n) esatto'
-                  : '⚠ Elementi fuori-tridiagonale non nulli (a₁₃ o a₃₁ ≠ 0)'}
+                  ? tr(
+                      '✓ Tridiagonal Matrix: Exact O(n) Thomas Algorithm (TDMA)',
+                      '✓ Matrice Tridiagonale: Algoritmo di Thomas O(n) esatto'
+                    )
+                  : tr(
+                      '⚠ Non-zero off-tridiagonal entries (a₁₃ or a₃₁ ≠ 0)',
+                      '⚠ Elementi fuori-tridiagonale non nulli (a₁₃ o a₃₁ ≠ 0)'
+                    )}
               </span>
             </div>
 
@@ -768,14 +828,19 @@ export default function LinearSystemPanel({
                 onClick={handleMakeTridiagonal}
                 className="w-full py-1.5 px-3 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-xs font-semibold transition"
               >
-                ⚡ Azzera a₁₃ = a₃₁ = 0 (Rendi Tridiagonale 3×3)
+                {tr(
+                  '⚡ Set a₁₃ = a₃₁ = 0 (Make 3×3 Tridiagonal)',
+                  '⚡ Azzera a₁₃ = a₃₁ = 0 (Rendi Tridiagonale 3×3)'
+                )}
               </button>
             )}
 
-            {/* 3 Diagonals (a_i, d_i, c_i) & Modified Sweep Coefficients (c'_i, d'_i) */}
             <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2.5 space-y-1.5 text-[10px] font-mono">
               <div className="text-slate-400 font-semibold">
-                1. Bande Tridiagonali (a_i x_&#123;i-1&#125; + d_i x_i + c_i x_&#123;i+1&#125; = b_i):
+                {tr(
+                  '1. Tridiagonal Bands (a_i x_{i-1} + d_i x_i + c_i x_{i+1} = b_i):',
+                  '1. Bande Tridiagonali (a_i x_{i-1} + d_i x_i + c_i x_{i+1} = b_i):'
+                )}
               </div>
               <div className="grid grid-cols-3 gap-1.5 text-slate-200">
                 <div className="bg-slate-900 px-2 py-1 rounded">
@@ -793,24 +858,25 @@ export default function LinearSystemPanel({
               </div>
 
               <div className="text-slate-400 font-semibold pt-1">
-                2. Forward Sweep di Thomas (c'_i, d'_i) & Back-Substitution:
+                {tr(
+                  "2. Thomas Forward Sweep (c'_i, d'_i) & Back-Substitution:",
+                  "2. Forward Sweep di Thomas (c'_i, d'_i) & Sostituzione all'indietro:"
+                )}
               </div>
               <div className="flex justify-between text-amber-300">
                 <span>c' = ({solution.thomas.cPrime.map((v) => formatNum(v, 3)).join(', ')})</span>
                 <span>d' = ({solution.thomas.dPrime.map((v) => formatNum(v, 3)).join(', ')})</span>
               </div>
               <div className="flex justify-between text-emerald-300 font-semibold pt-0.5 text-[11px]">
-                <span>Thomas Solution x_TDMA:</span>
+                <span>x_TDMA:</span>
                 <span>({solution.thomas.xThomas.map((v) => formatNum(v, 4)).join(', ')})</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 4: CRAMER'S RULE & ROW HYPERPLANES */}
         {directTab === 'cramer' && (
           <div className="space-y-2.5">
-            {/* Row Equations */}
             <div className="space-y-1">
               {matrix.map((row, r) => (
                 <div
@@ -818,17 +884,20 @@ export default function LinearSystemPanel({
                   className="flex items-center justify-between text-xs font-mono bg-slate-950/70 px-2.5 py-1.5 rounded border border-slate-800/80"
                 >
                   <span className={PLANE_COLORS[r]}>
-                    {mode === '2d' ? `Line L${r + 1}:` : `Plane Π${r + 1}:`}
+                    {mode === '2d'
+                      ? tr(`Line L${r + 1}:`, `Retta L${r + 1}:`)
+                      : tr(`Plane Π${r + 1}:`, `Piano Π${r + 1}:`)}
                   </span>
                   <span className="text-slate-200">{formatRowEquation(row, b[r] ?? 0)}</span>
                 </div>
               ))}
             </div>
 
-            {/* Cramer's Rule Determinants */}
             <div className="rounded-lg bg-slate-950/60 border border-slate-800/80 p-2.5 space-y-1">
               <div className="flex items-center justify-between text-[11px]">
-                <span className="font-semibold text-slate-300">Cramer's Rule (Area/Vol Ratios)</span>
+                <span className="font-semibold text-slate-300">
+                  {tr("Cramer's Rule (Area/Vol Ratios)", 'Regola di Cramer (Rapporti Area/Vol)')}
+                </span>
                 <span className="font-mono text-slate-400">x_i = det(A_i) / det(A)</span>
               </div>
               <div className="grid grid-cols-1 gap-1 pt-1">
@@ -842,7 +911,9 @@ export default function LinearSystemPanel({
                     </span>
                     <span className="text-emerald-300">
                       {AXES[idx]}* = {formatNum(dAi, 2)} / {formatNum(metrics.det, 2)} ={' '}
-                      {metrics.singular ? 'Singular' : formatNum(dAi / metrics.det, 4)}
+                      {metrics.singular
+                        ? tr('Singular', 'Singolare')
+                        : formatNum(dAi / metrics.det, 4)}
                     </span>
                   </div>
                 ))}
@@ -857,10 +928,16 @@ export default function LinearSystemPanel({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-slate-200">
-              Iterative Solvers Convergence Studio
+              {tr(
+                'Iterative Solvers Convergence Studio',
+                'Studio Convergenza Metodi Iterativi'
+              )}
             </span>
             <p className="text-[10px] text-slate-400">
-              Step k = {iterStep} / 25 from initial guess x⁽⁰⁾ = (0, 0{n === 3 ? ', 0' : ''})
+              {tr(
+                `Step k = ${iterStep} / 25 from initial guess x⁽⁰⁾ = (0, 0${n === 3 ? ', 0' : ''})`,
+                `Passo k = ${iterStep} / 25 da stima iniziale x⁽⁰⁾ = (0, 0${n === 3 ? ', 0' : ''})`
+              )}
             </p>
           </div>
           <div className="flex items-center gap-1">
@@ -872,7 +949,7 @@ export default function LinearSystemPanel({
               }}
               className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-xs font-semibold transition"
             >
-              {iterPlaying ? '⏸ Pause' : '▶ Animate'}
+              {iterPlaying ? tr('⏸ Pause', '⏸ Pausa') : tr('▶ Animate', '▶ Anima')}
             </button>
             <button
               type="button"
@@ -887,10 +964,9 @@ export default function LinearSystemPanel({
           </div>
         </div>
 
-        {/* Iteration Step k Slider */}
         <div className="space-y-1">
           <div className="flex justify-between text-[11px] font-mono text-slate-300">
-            <span>Iteration Step k</span>
+            <span>{tr('Iteration Step k', 'Passo Iterazione k')}</span>
             <span className="text-amber-300 font-bold">k = {iterStep}</span>
           </div>
           <input
@@ -907,10 +983,9 @@ export default function LinearSystemPanel({
           />
         </div>
 
-        {/* SOR Relaxation Parameter omega */}
         <div className="space-y-1">
           <div className="flex justify-between text-[11px] font-mono text-slate-300">
-            <span>SOR Relaxation Factor ω ∈ (0, 2)</span>
+            <span>{tr('SOR Relaxation Factor ω ∈ (0, 2)', 'Fattore Rilassamento SOR ω ∈ (0, 2)')}</span>
             <span className="text-amber-300">ω = {formatNum(sorOmega, 2)}</span>
           </div>
           <input
@@ -924,7 +999,6 @@ export default function LinearSystemPanel({
           />
         </div>
 
-        {/* Method Cards with Toggle, Spectral Radius rho(G), and Current Iterate x^(k) */}
         <div className="space-y-1.5">
           {Object.values(solution.iterative).map((trace) => {
             const active = enabledMethods[trace.id]
@@ -977,11 +1051,15 @@ export default function LinearSystemPanel({
           })}
         </div>
 
-        {/* Residual Convergence Chart */}
         <div className="space-y-1 pt-1">
           <div className="text-[10px] font-mono text-slate-400 flex justify-between">
-            <span>Residual Convergence log₁₀ ‖Ax⁽ᵏ⁾ − b‖₂</span>
-            <span>Step k ∈ [0, 25]</span>
+            <span>
+              {tr(
+                'Residual Convergence log₁₀ ‖Ax⁽ᵏ⁾ − b‖₂',
+                'Convergenza Residuo log₁₀ ‖Ax⁽ᵏ⁾ − b‖₂'
+              )}
+            </span>
+            <span>{tr('Step k ∈ [0, 25]', 'Passo k ∈ [0, 25]')}</span>
           </div>
           <canvas
             ref={chartRef}

@@ -16,6 +16,7 @@ import {
   formatNum,
   vecNormP,
 } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface Canvas3DProps {
   baseMatrix: number[][]
@@ -193,6 +194,7 @@ export default function Canvas3D({
   normalizePower,
   layers,
 }: Canvas3DProps) {
+  const { tr } = useI18n()
   const containerRef = useRef<HTMLDivElement>(null)
   const [autoRotate, setAutoRotate] = useState(false)
 
@@ -735,7 +737,9 @@ export default function Canvas3D({
               : 'text-slate-400 hover:bg-slate-800'
           }`}
         >
-          {autoRotate ? '⟳ Orbiting' : '⟳ Auto-Orbit'}
+          {autoRotate
+            ? tr('⟳ Orbiting', '⟳ Rotazione Attiva')
+            : tr('⟳ Auto-Orbit', '⟳ Auto-Rotazione')}
         </button>
       </div>
 
@@ -758,7 +762,10 @@ export default function Canvas3D({
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
             <span>
-              Vol |det(A)| = {formatNum(Math.abs(metrics.det), 2)} (Ref Cube Vol = 1)
+              {tr(
+                `Vol |det(A)| = ${formatNum(Math.abs(metrics.det), 2)} (Ref Cube Vol = 1)`,
+                `Vol |det(A)| = ${formatNum(Math.abs(metrics.det), 2)} (Cubo Rif. Vol = 1)`
+              )}
             </span>
           </span>
           <span className="flex items-center gap-1.5">
@@ -769,7 +776,10 @@ export default function Canvas3D({
           </span>
         </div>
         <div className="text-[11px] font-mono text-slate-400 bg-slate-900/75 backdrop-blur px-2.5 py-1 rounded-lg border border-slate-800/70 w-fit">
-          Left-drag to orbit • Right-drag to pan • Scroll to zoom
+          {tr(
+            'Left-drag to orbit • Right-drag to pan • Scroll to zoom',
+            'Trascina col sinistro per ruotare • Destro per traslare • Scorri per zoom'
+          )}
         </div>
       </div>
     </div>

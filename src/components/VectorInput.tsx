@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { applyMatrix, formatNum, normalizeVec, vecNorm } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface VectorInputProps {
   vector: number[]
@@ -10,6 +11,7 @@ interface VectorInputProps {
 const AXES = ['x', 'y', 'z']
 
 export default function VectorInput({ vector, matrix, onChange }: VectorInputProps) {
+  const { tr } = useI18n()
   const n = vector.length
   const [drafts, setDrafts] = useState<string[]>(() => vector.map((v) => formatNum(v, 3)))
 
@@ -36,7 +38,7 @@ export default function VectorInput({ vector, matrix, onChange }: VectorInputPro
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Test Vector v & Image T(v) = Av
+          {tr('Test Vector v & Image T(v) = Av', 'Vettore Test v & Immagine T(v) = Av')}
         </span>
         <div className="flex items-center gap-1">
           <button
@@ -58,7 +60,7 @@ export default function VectorInput({ vector, matrix, onChange }: VectorInputPro
             onClick={() => {
               if (normV > 1e-9) onChange(normalizeVec(vector))
             }}
-            title="Normalize v to unit length (‖v‖ = 1)"
+            title={tr('Normalize v to unit length (‖v‖ = 1)', 'Normalizza v a lunghezza unitaria (‖v‖ = 1)')}
             className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition"
           >
             ‖v‖=1
@@ -67,12 +69,11 @@ export default function VectorInput({ vector, matrix, onChange }: VectorInputPro
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
-        {/* Input Vector v */}
         <div className="rounded-xl bg-slate-900/90 border border-sky-500/30 p-3 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-sky-400 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-sky-400" />
-              Input v
+              {tr('Input v', 'Input v')}
             </span>
             <span className="text-[10px] font-mono text-slate-400">
               ‖v‖ = {formatNum(normV, 2)}
@@ -96,12 +97,11 @@ export default function VectorInput({ vector, matrix, onChange }: VectorInputPro
           </div>
         </div>
 
-        {/* Transformed Vector Av */}
         <div className="rounded-xl bg-slate-900/90 border border-rose-500/30 p-3 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-rose-400 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
-              Output Av
+              {tr('Output Av', 'Immagine Av')}
             </span>
             <span className="text-[10px] font-mono text-slate-400">
               ‖Av‖ = {formatNum(normAv, 2)}

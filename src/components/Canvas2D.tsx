@@ -14,6 +14,7 @@ import {
   formatNum,
   sampleLpUnitBall2D,
 } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface Canvas2DProps {
   baseMatrix: number[][]
@@ -153,6 +154,7 @@ export default function Canvas2D({
   normalizePower,
   layers,
 }: Canvas2DProps) {
+  const { tr } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [scale, setScale] = useState<number>(68)
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -1050,7 +1052,7 @@ export default function Canvas2D({
           }}
           className="px-2.5 py-1 text-xs font-medium text-sky-400 hover:bg-sky-500/10 rounded-lg transition"
         >
-          Reset View
+          {tr('Reset View', 'Ripristina Vista')}
         </button>
       </div>
 
@@ -1059,7 +1061,7 @@ export default function Canvas2D({
         <div className="flex flex-wrap items-center gap-3 bg-slate-900/85 backdrop-blur-md border border-slate-800/90 rounded-xl px-3 py-2 text-[11px] text-slate-300 shadow-lg">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block" />
-            <span>v (Drag)</span>
+            <span>{tr('v (Drag)', 'v (Trascina)')}</span>
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
@@ -1082,14 +1084,20 @@ export default function Canvas2D({
           {layers.rowPlanes && (
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 inline-block" />
-              <span>Row Lines → x*</span>
+              <span>{tr('Row Lines → x*', 'Rette Righe → x*')}</span>
             </span>
           )}
         </div>
         <div className="text-[11px] font-mono text-slate-400 bg-slate-900/75 backdrop-blur px-2.5 py-1 rounded-lg border border-slate-800/70 w-fit">
           {mouseWorld
-            ? `Cursor: (${formatNum(mouseWorld[0], 2)}, ${formatNum(mouseWorld[1], 2)}) • Drag v, b, Ae₁, Ae₂`
-            : 'Drag vector tips v, b, Ae₁, Ae₂ on canvas • Scroll to zoom'}
+            ? tr(
+                `Cursor: (${formatNum(mouseWorld[0], 2)}, ${formatNum(mouseWorld[1], 2)}) • Drag v, b, Ae₁, Ae₂`,
+                `Cursore: (${formatNum(mouseWorld[0], 2)}, ${formatNum(mouseWorld[1], 2)}) • Trascina v, b, Ae₁, Ae₂`
+              )
+            : tr(
+                'Drag vector tips v, b, Ae₁, Ae₂ on canvas • Scroll to zoom',
+                'Trascina le punte dei vettori v, b, Ae₁, Ae₂ sul canvas • Scorri per zoom'
+              )}
         </div>
       </div>
     </div>

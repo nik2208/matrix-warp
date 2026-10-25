@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatNum, identityMatrix, invertMatrix, transposeMatrix } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface MatrixInputProps {
   matrix: number[][]
@@ -9,6 +10,7 @@ interface MatrixInputProps {
 const COL_COLORS = ['text-emerald-400', 'text-amber-400', 'text-indigo-400']
 
 export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
+  const { tr } = useI18n()
   const n = matrix.length as 2 | 3
   const [drafts, setDrafts] = useState<string[][]>(() =>
     matrix.map((row) => row.map((v) => formatNum(v, 4)))
@@ -44,13 +46,13 @@ export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          Operator Matrix A ({n}×{n})
+          {tr(`Operator Matrix A (${n}×${n})`, `Matrice Operatore A (${n}×${n})`)}
         </span>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onChange(transposeMatrix(matrix))}
-            title="Transpose Matrix (A^T)"
+            title={tr('Transpose Matrix (A^T)', 'Trasponi Matrice (A^T)')}
             className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition"
           >
             Aᵀ
@@ -59,7 +61,11 @@ export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
             type="button"
             disabled={!inv}
             onClick={() => inv && onChange(inv)}
-            title={inv ? 'Invert Matrix (A⁻¹)' : 'Matrix is singular (not invertible)'}
+            title={
+              inv
+                ? tr('Invert Matrix (A⁻¹)', 'Inverti Matrice (A⁻¹)')
+                : tr('Matrix is singular (not invertible)', 'Matrice singolare (non invertibile)')
+            }
             className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none text-slate-200 border border-slate-700 transition"
           >
             A⁻¹
@@ -67,7 +73,7 @@ export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
           <button
             type="button"
             onClick={() => onChange(identityMatrix(n))}
-            title="Reset to Identity Matrix"
+            title={tr('Reset to Identity Matrix', 'Ripristina Matrice Identità')}
             className="px-2 py-0.5 text-[11px] font-mono rounded bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition"
           >
             Reset I
@@ -90,7 +96,6 @@ export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
 
       {/* Bracketed Matrix Cells */}
       <div className="relative flex items-center bg-slate-900/90 border border-slate-800 rounded-xl p-3">
-        {/* Left bracket */}
         <div className="w-2.5 self-stretch border-l-2 border-t-2 border-b-2 border-slate-500 rounded-l-sm mr-1.5" />
 
         <div className={`grid gap-2 flex-1 ${n === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
@@ -116,7 +121,6 @@ export default function MatrixInput({ matrix, onChange }: MatrixInputProps) {
           )}
         </div>
 
-        {/* Right bracket */}
         <div className="w-2.5 self-stretch border-r-2 border-t-2 border-b-2 border-slate-500 rounded-r-sm ml-1.5" />
       </div>
     </div>

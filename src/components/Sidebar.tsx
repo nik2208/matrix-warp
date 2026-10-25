@@ -14,6 +14,7 @@ import NormControlPanel from './NormControlPanel'
 import LinearSystemPanel from './LinearSystemPanel'
 import MetricsPanel from './MetricsPanel'
 import { cloneMatrix } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface SidebarProps {
   mode: Mode
@@ -124,6 +125,7 @@ export default function Sidebar({
   setNormalizePower,
   metrics,
 }: SidebarProps) {
+  const { lang, setLang, tr } = useI18n()
   const [activeTab, setActiveTab] = useState<'operator' | 'solver' | 'metrics'>('operator')
   const currentMatrix = mode === '2d' ? matrix2 : matrix3
   const currentVector = mode === '2d' ? vector2 : vector3
@@ -147,48 +149,86 @@ export default function Sidebar({
 
   return (
     <div className="flex flex-col h-full bg-slate-950 text-slate-100 border-r border-slate-800/90">
-      {/* Header & 2D/3D Mode Switcher */}
+      {/* Header, Language Switcher (EN/IT) & 2D/3D Mode Switcher */}
       <div className="p-3.5 border-b border-slate-800/90 space-y-2.5 bg-slate-900/40">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center font-mono font-bold text-sm text-white shadow-md shadow-sky-500/20">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-sky-500 to-indigo-600 flex items-center justify-center font-mono font-bold text-sm text-white shadow-md shadow-sky-500/20 shrink-0">
               [A]
             </div>
             <div>
               <h1 className="text-sm font-bold tracking-tight text-white leading-tight">
                 Matrix Warp
               </h1>
-              <p className="text-[11px] text-slate-400">
-                Operator, Norms, Spectral & Ax=b Studio
+              <p className="text-[10px] text-slate-400">
+                {tr(
+                  'Operator, Norms, Spectral & Ax=b Studio',
+                  'Studio Operatori, Norme, Spettro & Ax=b'
+                )}
               </p>
             </div>
           </div>
 
-          <div className="inline-flex rounded-xl bg-slate-900 p-1 border border-slate-800">
-            <button
-              type="button"
-              aria-pressed={mode === '2d'}
-              onClick={() => setMode('2d')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                mode === '2d'
-                  ? 'bg-sky-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
+          <div className="flex items-center gap-1.5">
+            {/* Language Switcher EN | IT */}
+            <div
+              className="inline-flex rounded-xl bg-slate-900 p-0.5 border border-slate-800"
+              role="group"
+              aria-label="Language switcher"
             >
-              2×2 (2D)
-            </button>
-            <button
-              type="button"
-              aria-pressed={mode === '3d'}
-              onClick={() => setMode('3d')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
-                mode === '3d'
-                  ? 'bg-sky-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              3×3 (3D)
-            </button>
+              <button
+                type="button"
+                aria-pressed={lang === 'en'}
+                onClick={() => setLang('en')}
+                className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition ${
+                  lang === 'en'
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                aria-pressed={lang === 'it'}
+                onClick={() => setLang('it')}
+                className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition ${
+                  lang === 'it'
+                    ? 'bg-indigo-500 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                IT
+              </button>
+            </div>
+
+            {/* 2D / 3D Mode Switcher */}
+            <div className="inline-flex rounded-xl bg-slate-900 p-0.5 border border-slate-800">
+              <button
+                type="button"
+                aria-pressed={mode === '2d'}
+                onClick={() => setMode('2d')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  mode === '2d'
+                    ? 'bg-sky-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                2D
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === '3d'}
+                onClick={() => setMode('3d')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${
+                  mode === '3d'
+                    ? 'bg-sky-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                3D
+              </button>
+            </div>
           </div>
         </div>
 
@@ -203,7 +243,7 @@ export default function Sidebar({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Matrix & Lₚ
+            {tr('Matrix & Lₚ', 'Matrice & Lₚ')}
           </button>
           <button
             type="button"
@@ -214,7 +254,7 @@ export default function Sidebar({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Solve Ax = b
+            {tr('Solve Ax = b', 'Risolvi Ax = b')}
           </button>
           <button
             type="button"
@@ -225,7 +265,7 @@ export default function Sidebar({
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            Spectral & LU/QR
+            {tr('Spectrum & LU', 'Spettro & LU')}
           </button>
         </div>
       </div>
@@ -234,15 +274,14 @@ export default function Sidebar({
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4">
         {activeTab === 'operator' && (
           <>
-            {/* Operator Presets Gallery */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                  Canonical Presets
+                  {tr('Canonical Presets', 'Preset Canonici')}
                 </span>
                 {activePreset && (
                   <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                    {activePreset.name}
+                    {tr(activePreset.name, activePreset.nameIt)}
                   </span>
                 )}
               </div>
@@ -260,7 +299,7 @@ export default function Sidebar({
                           : 'bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 text-slate-300'
                       }`}
                     >
-                      <span className="truncate">{preset.name}</span>
+                      <span className="truncate">{tr(preset.name, preset.nameIt)}</span>
                       <span className="text-[10px] font-mono text-slate-400 ml-1 shrink-0">
                         {preset.badge}
                       </span>
@@ -270,22 +309,19 @@ export default function Sidebar({
               </div>
               {activePreset && (
                 <p className="text-[11px] text-slate-400 bg-slate-900/50 border border-slate-800/80 rounded-lg px-2.5 py-1.5 leading-relaxed">
-                  {activePreset.description}
+                  {tr(activePreset.description, activePreset.descriptionIt)}
                 </p>
               )}
             </div>
 
-            {/* Matrix Input Cells */}
             <MatrixInput matrix={currentMatrix} onChange={handleMatrixUpdate} />
 
-            {/* Vector Input Cells */}
             <VectorInput
               vector={currentVector}
               matrix={currentMatrix}
               onChange={handleVectorUpdate}
             />
 
-            {/* Lp Norm Explorer Slider (p in [1, infinity]) */}
             <NormControlPanel
               pSlider={pSlider}
               onPSliderChange={setPSlider}
@@ -295,7 +331,6 @@ export default function Sidebar({
               onSelectMaximizer={(vec) => handleVectorUpdate(vec)}
             />
 
-            {/* Time Evolution & Power Iteration Studio */}
             <ControlsTime
               t={t}
               setT={setT}
@@ -317,7 +352,6 @@ export default function Sidebar({
 
         {activeTab === 'solver' && (
           <>
-            {/* Quick Matrix Input in Solver Tab for immediate tweaking */}
             <MatrixInput matrix={currentMatrix} onChange={handleMatrixUpdate} />
 
             <LinearSystemPanel

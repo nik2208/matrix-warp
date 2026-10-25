@@ -12,8 +12,10 @@ import {
 } from './lib/mathEngine'
 import { solveLinearSystem } from './lib/linearSolver'
 import { PRESETS_2D, PRESETS_3D, type MatrixPreset } from './lib/presets'
+import { useI18n } from './lib/i18n'
 
 export default function App() {
+  const { tr } = useI18n()
   const [mode, setMode] = useState<Mode>('2d')
   const [matrix2, setMatrix2] = useState<number[][]>(() => [
     [2, 0.8],
@@ -291,17 +293,35 @@ export default function App() {
         <div className="flex flex-wrap items-center gap-1 bg-slate-900/90 backdrop-blur-md border border-slate-800 rounded-xl p-1.5 shadow-xl pointer-events-auto">
           {(
             [
-              ['baseGrid', 'Base Grid', 'text-slate-300'],
-              ['warpedGrid', 'Warped Space', 'text-sky-300'],
+              ['baseGrid', tr('Base Grid', 'Griglia Base'), 'text-slate-300'],
+              ['warpedGrid', tr('Warped Space', 'Spazio Deformato'), 'text-sky-300'],
               ['unitArea', mode === '2d' ? 'Area |det|' : 'Vol |det|', 'text-emerald-300'],
-              ['svdCircle', mode === '2d' ? 'SVD Ellipse' : 'SVD Ellipsoid', 'text-purple-300'],
-              ['lpBall', `L_${lpMetrics.pLabel} Ball`, 'text-indigo-300'],
-              ['eigenLines', 'Eigen & ρ(A)', 'text-teal-300'],
-              ['rowPlanes', mode === '2d' ? 'Row Lines' : 'Row Planes', 'text-amber-300'],
-              ['colPicture', 'Col Picture (b)', 'text-fuchsia-300'],
-              ['iterativePaths', 'Iter Paths x⁽ᵏ⁾', 'text-cyan-300'],
-              ['vectors', 'Vectors v & Av', 'text-rose-300'],
-              ['trajectory', powerMode ? 'Orbit Aᵏv' : 'Trajectory', 'text-orange-300'],
+              [
+                'svdCircle',
+                mode === '2d'
+                  ? tr('SVD Ellipse', 'Ellisse SVD')
+                  : tr('SVD Ellipsoid', 'Ellissoide SVD'),
+                'text-purple-300',
+              ],
+              ['lpBall', tr(`L_${lpMetrics.pLabel} Ball`, `Palla L_${lpMetrics.pLabel}`), 'text-indigo-300'],
+              ['eigenLines', tr('Eigen & ρ(A)', 'Autovettori & ρ(A)'), 'text-teal-300'],
+              [
+                'rowPlanes',
+                mode === '2d'
+                  ? tr('Row Lines', 'Rette Righe')
+                  : tr('Row Planes', 'Piani Righe'),
+                'text-amber-300',
+              ],
+              ['colPicture', tr('Col Picture (b)', 'Comb. Colonne (b)'), 'text-fuchsia-300'],
+              ['iterativePaths', tr('Iter Paths x⁽ᵏ⁾', 'Traiettorie x⁽ᵏ⁾'), 'text-cyan-300'],
+              ['vectors', tr('Vectors v & Av', 'Vettori v & Av'), 'text-rose-300'],
+              [
+                'trajectory',
+                powerMode
+                  ? tr('Orbit Aᵏv', 'Orbita Aᵏv')
+                  : tr('Trajectory', 'Traiettoria'),
+                'text-orange-300',
+              ],
             ] as const
           ).map(([key, label, activeColor]) => {
             const active = layers[key]

@@ -1,5 +1,6 @@
 import type { LpMetrics } from '../types/math'
 import { formatNum } from '../lib/mathEngine'
+import { useI18n } from '../lib/i18n'
 
 interface NormControlPanelProps {
   /** Slider value in [1, 10.5], where > 10 means Infinity */
@@ -12,12 +13,12 @@ interface NormControlPanelProps {
 }
 
 const PRESET_P = [
-  { label: 'L₁ (Manhattan)', val: 1 },
-  { label: 'L₁.₅', val: 1.5 },
-  { label: 'L₂ (Euclidean)', val: 2 },
-  { label: 'L₃', val: 3 },
-  { label: 'L₄', val: 4 },
-  { label: 'L∞ (Max)', val: 10.5 },
+  { labelEn: 'L₁ (Manhattan)', labelIt: 'L₁ (Manhattan)', val: 1 },
+  { labelEn: 'L₁.₅', labelIt: 'L₁.₅', val: 1.5 },
+  { labelEn: 'L₂ (Euclidean)', labelIt: 'L₂ (Euclidea)', val: 2 },
+  { labelEn: 'L₃', labelIt: 'L₃', val: 3 },
+  { labelEn: 'L₄', labelIt: 'L₄', val: 4 },
+  { labelEn: 'L∞ (Max)', labelIt: 'L∞ (Max)', val: 10.5 },
 ]
 
 export default function NormControlPanel({
@@ -28,6 +29,7 @@ export default function NormControlPanel({
   onToggleLpBall,
   onSelectMaximizer,
 }: NormControlPanelProps) {
+  const { tr } = useI18n()
   const stretchRatio =
     lpMetrics.vecNormV > 1e-12 ? lpMetrics.vecNormAv / lpMetrics.vecNormV : 0
 
@@ -36,10 +38,16 @@ export default function NormControlPanel({
       <div className="flex items-center justify-between gap-2">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-fuchsia-300">
-            Minkowski L_p Norm Explorer (p = {lpMetrics.pLabel})
+            {tr(
+              `Minkowski L_p Norm Explorer (p = ${lpMetrics.pLabel})`,
+              `Esploratore Norma L_p di Minkowski (p = ${lpMetrics.pLabel})`
+            )}
           </span>
           <p className="text-[10px] text-slate-400">
-            Continuous p-norm from L₁ diamond to L₂ circle to L∞ cube
+            {tr(
+              'Continuous p-norm from L₁ diamond to L₂ circle to L∞ cube',
+              'Norma-p continua dal diamante L₁ al cerchio L₂ fino al cubo L∞'
+            )}
           </p>
         </div>
         <button
@@ -52,16 +60,16 @@ export default function NormControlPanel({
               : 'bg-slate-800 border-slate-700 text-slate-400'
           }`}
         >
-          {showLpBall ? '◉ L_p Ball On' : '○ L_p Ball Off'}
+          {showLpBall
+            ? tr('◉ L_p Ball On', '◉ Palla L_p Attiva')
+            : tr('○ L_p Ball Off', '○ Palla L_p Off')}
         </button>
       </div>
 
       {/* Slider for p from 1 to Infinity */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between text-xs font-mono">
-          <span className="text-slate-300">
-            ‖x‖_p = (∑ |x_i|^p)^(1/p)
-          </span>
+          <span className="text-slate-300">‖x‖_p = (∑ |x_i|^p)^(1/p)</span>
           <span className="font-bold text-fuchsia-300">p = {lpMetrics.pLabel}</span>
         </div>
         <input
@@ -80,7 +88,7 @@ export default function NormControlPanel({
               (item.val > 10 && pSlider > 10) || Math.abs(pSlider - item.val) < 0.06
             return (
               <button
-                key={item.label}
+                key={item.labelEn}
                 type="button"
                 onClick={() => onPSliderChange(item.val)}
                 className={`px-2 py-1 rounded text-[10px] font-mono border transition ${
@@ -89,7 +97,7 @@ export default function NormControlPanel({
                     : 'bg-slate-950/70 hover:bg-slate-800 border-slate-800 text-slate-400'
                 }`}
               >
-                {item.label}
+                {tr(item.labelEn, item.labelIt)}
               </button>
             )
           })}
@@ -100,7 +108,7 @@ export default function NormControlPanel({
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2.5">
           <div className="text-[10px] text-slate-400 flex justify-between">
-            <span>Vector Norm</span>
+            <span>{tr('Vector Norm', 'Norma Vettore')}</span>
             <span className="font-mono text-sky-300">‖v‖_{lpMetrics.pLabel}</span>
           </div>
           <div className="text-sm font-mono font-bold text-sky-300 mt-0.5">
@@ -114,7 +122,7 @@ export default function NormControlPanel({
 
         <div className="rounded-lg bg-slate-950/80 border border-slate-800 p-2.5">
           <div className="text-[10px] text-slate-400 flex justify-between">
-            <span>Induced Matrix Norm</span>
+            <span>{tr('Induced Matrix Norm', 'Norma Matriciale Indotta')}</span>
             <span className="font-mono text-fuchsia-300">‖A‖_{lpMetrics.pLabel}</span>
           </div>
           <div className="text-sm font-mono font-bold text-fuchsia-300 mt-0.5">
@@ -136,7 +144,7 @@ export default function NormControlPanel({
           onClick={() => onSelectMaximizer(lpMetrics.maximizerX)}
           className="px-2 py-0.5 rounded bg-fuchsia-500/20 hover:bg-fuchsia-500/35 text-fuchsia-200 border border-fuchsia-500/40 text-[10px] font-medium shrink-0 transition"
         >
-          Set v = x_max
+          {tr('Set v = x_max', 'Imposta v = x_max')}
         </button>
       </div>
     </div>
