@@ -104,11 +104,14 @@ jobs:
           git config --global user.email "opencode-bot@users.noreply.github.com"
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
 
-      # NOTE: Inserisci qui l'installazione dell'ambiente del tuo progetto (es. Node.js, Python, Rust, Go, Flutter)
-      # - name: Setup Environment
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: '20'
+      - name: Setup Node.js 22 & Dipendenze Progetto
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Installa dipendenze npm
+        run: npm ci
 
       - name: Install OpenCode CLI
         run: |
@@ -322,6 +325,36 @@ jobs:
 
           if [ "$(echo "$MERGE_RESP" | jq -r '.merged // false')" = "true" ]; then
             echo "✅ PR mergiata."
+            MERGE_SHA=$(echo "$MERGE_RESP" | jq -r '.sha // empty')
+
+            # Creazione automatica Git Tag e Release secondo Semantic Versioning (vX.Y.Z)
+            git fetch origin main
+            REL_VER=$(git show origin/main:VERSION 2>/dev/null | tr -d '[:space:]' || true)
+            if [ -z "$REL_VER" ]; then
+              REL_VER=$(git show origin/main:package.json 2>/dev/null | jq -r '.version // empty' || true)
+            fi
+            if [ -n "$REL_VER" ]; then
+              TAG_NAME="v${REL_VER#v}"
+              echo "🔖 Verifica tag Semantic Versioning: $TAG_NAME"
+              if ! git ls-remote --tags origin "refs/tags/$TAG_NAME" | grep -q "$TAG_NAME"; then
+                echo "🏷️ Creazione tag $TAG_NAME e GitHub Release su main..."
+                git tag -a "$TAG_NAME" origin/main -m "Release $TAG_NAME (OpenCode PR #$PR_NUMBER)"
+                git push origin "$TAG_NAME" || true
+                REL_PAYLOAD=$(jq -n \
+                  --arg tag "$TAG_NAME" \
+                  --arg name "Matrix Warp $TAG_NAME" \
+                  --arg body "Release automatica Semantic Versioning ($TAG_NAME) generata dal merge della PR #$PR_NUMBER." \
+                  '{tag_name: $tag, target_commitish: "main", name: $name, body: $body, draft: false, prerelease: false}')
+                curl -s -X POST "$API/releases" \
+                  -H "Authorization: Bearer $GH_TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "Content-Type: application/json" \
+                  -d "$REL_PAYLOAD" > /dev/null || true
+              else
+                echo "ℹ️ Il tag $TAG_NAME esiste già."
+              fi
+            fi
+
             if [ -n "$ISSUE_NUMBER" ] && [ "$ISSUE_NUMBER" != "$PR_NUMBER" ]; then
               curl -s -X PATCH "$API/issues/$ISSUE_NUMBER" \
                 -H "Authorization: Bearer $GH_TOKEN" \

@@ -63,11 +63,18 @@ else
   echo "📝 Generazione nuovo piano con OpenCode (agente planner)..."
   CLEAN_PROMPT=$(cat /tmp/clean_prompt.txt 2>/dev/null || echo "Nessun prompt")
   CONTEXT=$(cat /tmp/context.txt 2>/dev/null || echo "")
+  PROJECT_GUIDELINES=""
+  if [ -f ".opencode/context/PROJECT_GUIDELINES.md" ]; then
+    PROJECT_GUIDELINES=$(cat .opencode/context/PROJECT_GUIDELINES.md)
+  fi
 
-  PLAN_PROMPT="Analizza la richiesta e crea il piano di lavoro.
+  PLAN_PROMPT="Analizza la richiesta e crea il piano di lavoro rispettando rigorosamente AGENTS.md e le linee guida di progetto.
 Richiesta: $CLEAN_PROMPT
 Contesto: ${ISSUE_TITLE:-} - ${ISSUE_BODY:-}
-$CONTEXT"
+$CONTEXT
+
+=== LINEE GUIDA PROGETTO (MATRIX WARP) ===
+$PROJECT_GUIDELINES"
 
   if ! opencode run --agent planner --model "$CHOSEN_MODEL" "$PLAN_PROMPT" | tee "$PLAN_FILE"; then
     if [ "$CHOSEN_MODEL" != "opencode/big-pickle" ]; then
@@ -91,13 +98,23 @@ fi
 PLAN=""; [ -f /tmp/plan.md ] && PLAN="$(cat /tmp/plan.md)"
 CLEAN_PROMPT=$(cat /tmp/clean_prompt.txt 2>/dev/null || echo "")
 CONTEXT=$(cat /tmp/context.txt 2>/dev/null || echo "")
+PROJECT_GUIDELINES=""
+if [ -f ".opencode/context/PROJECT_GUIDELINES.md" ]; then
+  PROJECT_GUIDELINES=$(cat .opencode/context/PROJECT_GUIDELINES.md)
+fi
 REVIEW_FEEDBACK="(prima iterazione: nessun feedback)"
 VERDICT="FAIL"
 
 for i in $(seq 1 "$MAX_ITERATIONS"); do
   echo "::group::Iterazione $i — BUILD ($CHOSEN_MODEL)"
-  BUILD_PROMPT="Sei in modalità BUILD. Implementa il piano completando TUTTI i task e
+  BUILD_PROMPT="Sei in modalità BUILD sul progetto Matrix Warp. Implementa il piano completando TUTTI i task e
 soddisfacendo TUTTI gli Acceptance Criteria. Applica le modifiche ai file.
+
+REGOLE ARCHITETTURALI E SEMVER (MATRIX WARP):
+- Consulta 'AGENTS.md' e '.opencode/context/PROJECT_GUIDELINES.md'.
+- Mantieni il supporto bilingue 'EN | IT' ('src/lib/i18n.tsx' tramite 'useI18n()') per ogni testo UI.
+- Mantieni la parità 2D (2x2) e 3D (3x3) e verifica che 'npm run build' compili senza errori TypeScript.
+- Aggiorna la versione SemVer eseguendo 'bash scripts/bump-version.sh [patch|minor|major] \"Descrizione sintetica\"' (che sincronizza VERSION, package.json, index.html e CHANGELOG.md).
 
 REGOLE CRITICHE DI SICUREZZA (GITHUB ACTIONS):
 - NON creare né modificare MAI file dentro '.github/' o '.github/workflows/'. Qualsiasi file in '.github/workflows/' provocherà il rifiuto del push da parte di GitHub ('refusing to allow a GitHub App to create or update workflow without workflows permission').
@@ -105,6 +122,9 @@ REGOLE CRITICHE DI SICUREZZA (GITHUB ACTIONS):
 
 === PIANO ===
 ${PLAN:-Richiesta: $CLEAN_PROMPT}
+
+=== LINEE GUIDA PROGETTO ===
+$PROJECT_GUIDELINES
 
 === CONTESTO ===
 $CONTEXT
@@ -162,6 +182,29 @@ Scrivi come ULTIMA riga ESATTAMENTE una di queste:
   REVIEW_FEEDBACK="$(cat /tmp/review.txt)"
   echo "⚠️ Criteri non soddisfatti: procedo con iterazione $((i+1))."
 done
+
+# ── 3. GARANZIA SEMANTIC VERSIONING AUTOMATICO ───────────────────────────────
+if [ -x "scripts/bump-version.sh" ] && [ -f "package.json" ]; then
+  MAIN_VER=$(git show origin/main:package.json 2>/dev/null | grep -E '"version"' | head -n1 | sed -E 's/.*"version":[[:space:]]*"([^"]+)".*/\1/' || echo "")
+  CURR_VER=$(grep -E '"version"' package.json | head -n1 | sed -E 's/.*"version":[[:space:]]*"([^"]+)".*/\1/' || echo "")
+  if [ -n "$MAIN_VER" ] && [ "$MAIN_VER" = "$CURR_VER" ]; then
+    BUMP_KIND="patch"
+    if echo "${ISSUE_TITLE:-} ${CLEAN_PROMPT:-}" | grep -Eiq '(feat|feature|aggiungi|nuov|add|implement)'; then
+      BUMP_KIND="minor"
+    fi
+    SUMMARY_MSG="${ISSUE_TITLE:-${CLEAN_PROMPT:-Autonomous OpenCode update}}"
+    SUMMARY_MSG=$(echo "$SUMMARY_MSG" | tr '\n' ' ' | cut -c1-120)
+    echo "🔖 Versione invariata rispetto a main ($CURR_VER). Eseguo bump SemVer ($BUMP_KIND)..."
+    bash scripts/bump-version.sh "$BUMP_KIND" "$SUMMARY_MSG" || true
+    git add VERSION package.json index.html CHANGELOG.md 2>/dev/null || true
+    git commit -m "chore(release): bump SemVer ($BUMP_KIND) via OpenCode" || true
+    if [ -n "${BRANCH_NAME:-}" ]; then
+      git push origin "$BRANCH_NAME" || true
+    fi
+  else
+    echo "🔖 Versione SemVer già aggiornata sul branch: ${MAIN_VER:-N/A} -> ${CURR_VER:-N/A}"
+  fi
+fi
 
 echo "VERDICT=$VERDICT" >> "${GITHUB_OUTPUT:-/tmp/runner_output.env}"
 echo "🏁 Ciclo completato con esito: $VERDICT"

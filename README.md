@@ -1,6 +1,7 @@
 # Matrix Warp — Interactive Linear Operator, Spectral & Ax = b Studio 🧮✨
 
 [![Live Demo - GitHub Pages](https://img.shields.io/badge/Live_Demo-GitHub_Pages-0ea5e9?style=for-the-badge&logo=github)](https://nik2208.github.io/matrix-warp/)
+[![SemVer v1.1.0](https://img.shields.io/badge/SemVer-v1.1.0-f59e0b.svg)](CHANGELOG.md)
 [![Deploy to GitHub Pages](https://github.com/nik2208/matrix-warp/actions/workflows/deploy.yml/badge.svg)](https://github.com/nik2208/matrix-warp/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-10b981.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178c6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -147,10 +148,12 @@ npm run preview
 
 ## 🤝 Contributing & Community Standards
 
-Contributions, bug reports, and feature requests are welcome! Please review our community documents:
-- [Contributing Guide / Guida alla Contribuzione](CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Security Policy / Politica di Sicurezza](SECURITY.md)
+Contributions, bug reports, and feature requests are welcome! Please review our community & agentic governance documents:
+- [Changelog & Semantic Versioning (`CHANGELOG.md`)](CHANGELOG.md)
+- [Autonomous Agentic Context (`AGENTS.md`)](AGENTS.md)
+- [Contributing Guide / Guida alla Contribuzione (`CONTRIBUTING.md`)](CONTRIBUTING.md)
+- [Code of Conduct (`CODE_OF_CONDUCT.md`)](CODE_OF_CONDUCT.md)
+- [Security Policy / Politica di Sicurezza (`SECURITY.md`)](SECURITY.md)
 
 ---
 
